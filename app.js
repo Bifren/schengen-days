@@ -13,6 +13,15 @@ function fmt(d) {
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
 }
 
+function toISO(d) {
+  return toDay(d).toISOString().slice(0, 10);
+}
+
+function addDays(date, n) {
+  const d = toDay(date);
+  return new Date(d.getTime() + n * dayMs);
+}
+
 function daysInclusive(a, b) {
   const A = toDay(a).getTime();
   const B = toDay(b).getTime();
@@ -37,6 +46,10 @@ function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
   const end = (aEnd < bEnd) ? aEnd : bEnd;
   if (start > end) return 0;
   return daysInclusive(start, end);
+}
+
+function vibrate(ms = 12) {
+  if (navigator.vibrate) navigator.vibrate(ms);
 }
 
 // ---------- Storage ----------
@@ -110,7 +123,16 @@ function nextSafeEntryDate(startDate, trips) {
 
 // ---------- UI ----------
 let trips = loadTrips();
+let toastTimer;
 const el = (id) => document.getElementById(id);
+
+function showToast(text) {
+  const t = el("toast");
+  t.textContent = text;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1700);
+}
 
 function setBadge(kind) {
   const b = el("statusBadge");
@@ -136,6 +158,33 @@ function syncSelectedUI() {
   const addBtn = el("addTripBtn");
   addBtn.disabled = !info.ok;
   el("error").textContent = info.ok ? "" : info.msg;
+}
+
+function applyQuickPreset(kind) {
+  const now = new Date();
+  let entry = toDay(el("entryDate").value || now);
+  let exit = toDay(el("exitDate").value || now);
+
+  if (kind === "today") {
+    entry = toDay(now);
+    exit = toDay(now);
+  } else if (kind === "weekend") {
+    const day = now.getDay();
+    const addToSaturday = (6 - day + 7) % 7;
+    entry = addDays(now, addToSaturday);
+    exit = addDays(entry, 1);
+  } else {
+    const extraDays = Number(kind);
+    if (Number.isFinite(extraDays) && extraDays > 0) {
+      entry = toDay(el("entryDate").value || now);
+      exit = addDays(entry, extraDays - 1);
+    }
+  }
+
+  el("entryDate").value = toISO(entry);
+  el("exitDate").value = toISO(exit);
+  syncSelectedUI();
+  vibrate(8);
 }
 
 function render() {
@@ -208,12 +257,16 @@ function addTrip() {
   saveTrips(trips);
 
   render();
+  vibrate(16);
+  showToast(`Trip added • ${info.days} day(s)`);
 }
 
 function deleteTrip(id) {
   trips = trips.filter(t => t.id !== id);
   saveTrips(trips);
   render();
+  vibrate(10);
+  showToast("Trip deleted");
 }
 
 // Bottom tabs
@@ -225,6 +278,13 @@ document.querySelectorAll(".tabBtn").forEach(btn => {
     ["overview","trips","planner"].forEach(t => {
       el("tab-" + t).classList.toggle("hide", t !== tab);
     });
+  });
+});
+
+// Quick presets
+document.querySelectorAll(".quickBtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    applyQuickPreset(btn.dataset.preset);
   });
 });
 
@@ -241,6 +301,7 @@ el("resetBtn").addEventListener("click", () => {
     trips = [];
     saveTrips(trips);
     render();
+    showToast("All trips reset");
   }
 });
 
