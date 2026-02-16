@@ -169,6 +169,26 @@ let trips = loadTrips();
 let toastTimer;
 let editingIndex = null;
 const el = (id) => document.getElementById(id);
+const ringRadius = 74;
+const ringCircumference = 2 * Math.PI * ringRadius;
+
+function updateGlobeRing(used, remaining) {
+  const progress = Math.max(0, Math.min(1, used / 90));
+  const ring = el("globeRingProgress");
+  ring.style.strokeDasharray = `${ringCircumference.toFixed(2)} ${ringCircumference.toFixed(2)}`;
+  ring.style.strokeDashoffset = (ringCircumference * (1 - progress)).toFixed(2);
+
+  el("globeRingUsed").textContent = `Used: ${used} / 90`;
+  el("globeRingRemaining").textContent = `Remaining: ${remaining}`;
+
+  const host = el("globeRing");
+  host.classList.remove("state-safe", "state-warning", "state-danger");
+  if (used >= 90) host.classList.add("state-danger");
+  else if (used >= 61) host.classList.add("state-warning");
+  else host.classList.add("state-safe");
+
+  host.setAttribute("aria-label", `Schengen days used: ${used} out of 90, remaining ${remaining}`);
+}
 
 function showToast(text) {
   const t = el("toast");
@@ -291,6 +311,7 @@ function render() {
   el("remaining").textContent = String(rem);
   el("asOf").textContent = fmt(now);
   el("usedOf90").textContent = String(Math.min(90, used));
+  updateGlobeRing(used, rem);
 
   const p = Math.max(0, Math.min(100, (used / 90) * 100));
   const bar = el("progressBar");

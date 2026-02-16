@@ -103,6 +103,70 @@
     .progress{width:100%; height: 10px; border-radius: 999px; border: 1px solid var(--stroke); background: rgba(255,255,255,.05); overflow:hidden; margin-top:10px;}
     .bar{height:100%; width: 0%; background: var(--ok); border-radius: 999px; transition: width .25s ease;}
 
+    .heroIndicator{
+      grid-column: 1 / -1;
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      padding: 24px 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05));
+      box-shadow: 0 12px 28px rgba(0,0,0,.20);
+    }
+    .globeRingWrap{
+      position: relative;
+      width: 186px;
+      height: 186px;
+      display:grid;
+      place-items:center;
+    }
+    .ringSvg{
+      position:absolute;
+      inset:0;
+      transform: rotate(-90deg);
+    }
+    .ringTrack{
+      fill:none;
+      stroke: rgba(255,255,255,.16);
+      stroke-width: 9;
+    }
+    .ringProgress{
+      fill:none;
+      stroke: rgba(145, 178, 214, .78);
+      stroke-width: 9;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .40s cubic-bezier(.16,1,.3,1), stroke .40s cubic-bezier(.16,1,.3,1);
+    }
+    .globeSvg{
+      width: 118px;
+      height: 118px;
+      color: rgba(235,242,255,.88);
+      filter: drop-shadow(0 5px 16px rgba(0,0,0,.22));
+    }
+    .heroMeta{
+      text-align:center;
+      display:grid;
+      gap:4px;
+    }
+    .heroUsed{
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: -.025em;
+    }
+    .heroRemaining{
+      font-size: 15px;
+      color: rgba(255,255,255,.74);
+      font-weight: 500;
+    }
+    .heroSub{
+      font-size: 12px;
+      color: rgba(255,255,255,.52);
+      font-weight: 500;
+    }
+
+    .heroIndicator.state-safe .ringProgress{ stroke: rgba(145,186,220,.80); }
+    .heroIndicator.state-warning .ringProgress{ stroke: rgba(196,174,145,.82); }
+    .heroIndicator.state-danger .ringProgress{ stroke: rgba(190,150,150,.82); }
+
     table{width:100%; border-collapse:collapse}
     th,td{padding:12px 8px; border-bottom:1px solid var(--stroke); text-align:left}
     th{font-size:12px; color:var(--mut); font-weight:800}
@@ -141,6 +205,30 @@
     </div>
 
     <section id="tab-overview" class="grid cols2">
+      <div id="globeRing" class="card heroIndicator state-safe" data-testid="globe-ring" aria-label="Schengen days used: 0 out of 90, remaining 90">
+        <div class="globeRingWrap">
+          <svg class="ringSvg" viewBox="0 0 186 186" aria-hidden="true">
+            <circle class="ringTrack" cx="93" cy="93" r="74"></circle>
+            <circle id="globeRingProgress" class="ringProgress" cx="93" cy="93" r="74"></circle>
+          </svg>
+
+          <svg class="globeSvg" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+            <circle cx="60" cy="60" r="45" stroke="currentColor" stroke-width="2.2" opacity=".95"/>
+            <ellipse cx="60" cy="60" rx="18" ry="45" stroke="currentColor" stroke-width="1.7" opacity=".9"/>
+            <ellipse cx="60" cy="60" rx="33" ry="45" stroke="currentColor" stroke-width="1.4" opacity=".42"/>
+            <path d="M15 60h90" stroke="currentColor" stroke-width="1.8" opacity=".84"/>
+            <path d="M22 43c11 7 23 10 38 10s27-3 38-10" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+            <path d="M22 77c11-7 23-10 38-10s27 3 38 10" stroke="currentColor" stroke-width="1.5" opacity=".55"/>
+          </svg>
+        </div>
+
+        <div class="heroMeta">
+          <div id="globeRingUsed" class="heroUsed" data-testid="globe-ring-used">Used: 0 / 90</div>
+          <div id="globeRingRemaining" class="heroRemaining" data-testid="globe-ring-remaining">Remaining: 90</div>
+          <div class="heroSub">Rolling 180-day window</div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="row sp">
           <div>
