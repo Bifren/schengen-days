@@ -2,8 +2,9 @@
 const dayMs = 24 * 60 * 60 * 1000;
 
 function toDay(dateStrOrDate) {
-  const d = (dateStrOrDate instanceof Date) ? dateStrOrDate : new Date(dateStrOrDate + "T00:00:00");
-  // normalize to local start of day
+  const d = (dateStrOrDate instanceof Date)
+    ? dateStrOrDate
+    : new Date(dateStrOrDate + "T00:00:00");
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
@@ -22,16 +23,12 @@ function daysInclusive(a, b) {
 function clampTrip(trip) {
   const a = toDay(trip.entry);
   const b = toDay(trip.exit);
-  return {
-    entry: (a <= b) ? a : b,
-    exit:  (a <= b) ? b : a,
-    id: trip.id
-  };
+  return { id: trip.id, entry: (a <= b) ? a : b, exit: (a <= b) ? b : a };
 }
 
 function window180(refDate) {
   const end = toDay(refDate);
-  const start = new Date(end.getTime() - 179 * dayMs);
+  const start = new Date(end.getTime() - 179 * dayMs); // inclusive window of 180 days
   return { start, end };
 }
 
@@ -43,20 +40,22 @@ function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
 }
 
 // ---------- Storage ----------
-const KEY = "schengen_days_trips_v1";
+const KEY = "schengen_days_trips_v2";
 
 function loadTrips() {
   try {
     const raw = localStorage.getItem(KEY);
     const list = raw ? JSON.parse(raw) : [];
     return list.map(t => clampTrip(t));
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveTrips(trips) {
-  const raw = trips.map(t => ({ id: t.id, entry: t.entry.toISOString().slice(0,10), exit: t.exit.toISOString().slice(0,10) }));
+  const raw = trips.map(t => ({
+    id: t.id,
+    entry: t.entry.toISOString().slice(0, 10),
+    exit:  t.exit.toISOString().slice(0, 10)
+  }));
   localStorage.setItem(KEY, JSON.stringify(raw));
 }
 
@@ -64,9 +63,7 @@ function saveTrips(trips) {
 function daysUsedLast180(refDate, trips) {
   const w = window180(refDate);
   let sum = 0;
-  for (const t of trips) {
-    sum += overlapDaysInclusive(w.start, w.end, t.entry, t.exit);
-  }
+  for (const t of trips) sum += overlapDaysInclusive(w.start, w.end, t.entry, t.exit);
   return sum;
 }
 
@@ -87,14 +84,9 @@ function maxStayDays(entryDate, trips) {
   let days = 0;
   for (; days < 366; days++) {
     const current = new Date(entry.getTime() + days * dayMs);
-
-    // used by existing trips on this current day
     const usedExisting = daysUsedLast180(current, trips);
-
-    // plus virtual trip [entry..current]
     const w = window180(current);
     const extra = overlapDaysInclusive(w.start, w.end, entry, current);
-
     if (usedExisting + extra > 90) break;
   }
   return Math.max(0, days - 1);
@@ -118,7 +110,6 @@ function nextSafeEntryDate(startDate, trips) {
 
 // ---------- UI ----------
 let trips = loadTrips();
-
 const el = (id) => document.getElementById(id);
 
 function setBadge(kind) {
@@ -129,20 +120,49 @@ function setBadge(kind) {
   if (kind === "overstay") { b.classList.add("b-bad"); b.textContent = "Overstay"; }
 }
 
+function selectedTripDays() {
+  const entry = el("entryDate").value;
+  const exit = el("exitDate").value;
+  if (!entry || !exit) return { ok:false, days: 0, msg: "Select both dates." };
+  const a = toDay(entry), b = toDay(exit);
+  if (b < a) return { ok:false, days: 0, msg: "Exit date must be on or after entry date." };
+  const d = daysInclusive(a, b);
+  return { ok:true, days: d, msg: "" };
+}
+
+function syncSelectedUI() {
+  const info = selectedTripDays();
+  el("selectedDays").textContent = String(Math.max(1, info.days || 1));
+  const addBtn = el("addTripBtn");
+  addBtn.disabled = !info.ok;
+  el("error").textContent = info.ok ? "" : info.msg;
+}
+
 function render() {
   const now = new Date();
   const used = daysUsedLast180(now, trips);
-  const rem = remainingLast180(now, trips);
+  const rem  = remainingLast180(now, trips);
+
   el("used").textContent = String(used);
   el("remaining").textContent = String(rem);
   el("asOf").textContent = fmt(now);
+  el("usedOf90").textContent = String(Math.min(90, used));
+
+  // progress bar (0..100)
+  const p = Math.max(0, Math.min(100, (used / 90) * 100));
+  const bar = el("progressBar");
+  bar.style.width = p.toFixed(1) + "%";
+  // color thresholds
+  if (used >= 90) bar.style.background = "var(--bad)";
+  else if (used >= 80) bar.style.background = "var(--warn)";
+  else bar.style.background = "var(--ok)";
 
   setBadge(status(now, trips));
 
   const nextSafe = (rem > 0) ? now : nextSafeEntryDate(now, trips);
   el("nextSafe").textContent = fmt(nextSafe);
 
-  // trips tab
+  // Trips tab
   el("tripCount").textContent = String(trips.length);
   el("tripsEmpty").classList.toggle("hide", trips.length !== 0);
   el("tripsTableWrap").classList.toggle("hide", trips.length === 0);
@@ -151,18 +171,16 @@ function render() {
   tbody.innerHTML = "";
   for (const t of trips.slice().sort((a,b) => b.entry - a.entry)) {
     const tr = document.createElement("tr");
-    const days = daysInclusive(t.entry, t.exit);
+    const d = daysInclusive(t.entry, t.exit);
     tr.innerHTML = `
       <td>${fmt(t.entry)} → ${fmt(t.exit)}</td>
-      <td class="right">${days}</td>
-      <td class="right">
-        <button class="danger" data-del="${t.id}">Delete</button>
-      </td>
+      <td class="right">${d}</td>
+      <td class="right"><button class="danger" data-del="${t.id}">Delete</button></td>
     `;
     tbody.appendChild(tr);
   }
 
-  // planner
+  // Planner
   const planEntry = el("planEntry").value;
   if (planEntry) {
     const m = maxStayDays(planEntry, trips);
@@ -178,15 +196,17 @@ function render() {
   }
 }
 
-function addTrip(entry, exit) {
-  const err = el("error");
-  err.textContent = "";
-  if (!entry || !exit) { err.textContent = "Please select both dates."; return; }
-  const a = toDay(entry), b = toDay(exit);
-  if (b < a) { err.textContent = "Exit date must be on or after entry date."; return; }
+function addTrip() {
+  const info = selectedTripDays();
+  if (!info.ok) { syncSelectedUI(); return; }
+
+  const entry = el("entryDate").value;
+  const exit  = el("exitDate").value;
+
   const t = clampTrip({ id: crypto.randomUUID(), entry, exit });
   trips.push(t);
   saveTrips(trips);
+
   render();
 }
 
@@ -196,10 +216,10 @@ function deleteTrip(id) {
   render();
 }
 
-// Tabs
-document.querySelectorAll(".tab").forEach(btn => {
+// Bottom tabs
+document.querySelectorAll(".tabBtn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     const tab = btn.dataset.tab;
     ["overview","trips","planner"].forEach(t => {
@@ -209,13 +229,11 @@ document.querySelectorAll(".tab").forEach(btn => {
 });
 
 // Actions
-el("addTripBtn").addEventListener("click", () => addTrip(el("entryDate").value, el("exitDate").value));
-
+el("addTripBtn").addEventListener("click", addTrip);
 el("tripsTbody").addEventListener("click", (e) => {
   const id = e.target?.dataset?.del;
   if (id) deleteTrip(id);
 });
-
 el("planEntry").addEventListener("change", render);
 
 el("resetBtn").addEventListener("click", () => {
@@ -226,12 +244,17 @@ el("resetBtn").addEventListener("click", () => {
   }
 });
 
-// Init default dates
+// Live update “Selected days” + button state
+el("entryDate").addEventListener("change", () => { syncSelectedUI(); });
+el("exitDate").addEventListener("change", () => { syncSelectedUI(); });
+
+// Init defaults
 (function init() {
   const today = new Date();
   const iso = today.toISOString().slice(0,10);
   el("entryDate").value = iso;
   el("exitDate").value = iso;
   el("planEntry").value = iso;
+  syncSelectedUI();
   render();
 })();
