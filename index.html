@@ -9,130 +9,143 @@
   <style>
     :root{
       color-scheme: dark;
-      --bg:#070b12;
-      --bg2:#0f1727;
-      --card:rgba(255,255,255,.08);
-      --stroke:rgba(255,255,255,.14);
-      --text:rgba(255,255,255,.95);
-      --mut:rgba(255,255,255,.64);
-      --ok:#30d158;
-      --warn:#ff9f0a;
-      --bad:#ff453a;
-      --r:22px;
-      --shadow:0 14px 36px rgba(0,0,0,.28);
+      --bg:#060b1c;
+      --bg2:#0b1635;
+      --card:#0e1840;
+      --input:#243066;
+      --stroke:rgba(143,167,255,.18);
+      --text:#eef2ff;
+      --mut:#a8b4e8;
+      --pri:#2f81ff;
+      --ringTrack:#30456f;
+      --ringGlow:rgba(47,129,255,.35);
+      --r:16px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Arial,sans-serif;
+      font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Arial,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(1200px 640px at 10% -20%, rgba(10,132,255,.18), transparent 58%),
-        radial-gradient(1000px 620px at 100% 0%, rgba(48,209,88,.08), transparent 58%),
-        linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+        radial-gradient(1100px 560px at 20% -20%, rgba(47,129,255,.13), transparent 60%),
+        linear-gradient(180deg,var(--bg2),var(--bg));
       -webkit-font-smoothing:antialiased;
       padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
     }
-    .wrap{max-width:900px;margin:0 auto;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:grid;gap:14px}
-    .title{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em}
-    .subtitle{margin-top:6px;color:var(--mut);font-size:12px}
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid var(--stroke);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+    .wrap{max-width:420px;margin:0 auto;padding:10px 10px calc(12px + env(safe-area-inset-bottom));display:grid;gap:10px}
+    .card{background:linear-gradient(180deg,rgba(15,26,71,.92),rgba(12,20,56,.92));border:1px solid var(--stroke);border-radius:14px;padding:14px}
 
-    .hero{display:grid;gap:6px;justify-items:center;text-align:center;padding:26px 16px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));position:relative;overflow:hidden}
-    .hero::after{content:"";position:absolute;inset:auto 20% -90px 20%;height:140px;background:radial-gradient(ellipse at center, rgba(10,132,255,.20), transparent 70%);pointer-events:none}
-    .heroLabel{font-size:12px;color:var(--mut)}
-    .heroPrimary{font-size:64px;line-height:.95;font-weight:900;letter-spacing:-.04em}
-    .heroUnit{font-size:18px;font-weight:700;color:rgba(255,255,255,.88)}
-    .heroSecondary{font-size:13px;color:var(--mut)}
-    .heroNotice{font-size:14px;color:rgba(255,255,255,.86)}
-    .hero.safe{border-color:rgba(48,209,88,.34)}
-    .hero.warning{border-color:rgba(255,159,10,.34)}
-    .hero.danger{border-color:rgba(255,69,58,.38)}
-    .hero.critical{border-color:rgba(255,69,58,.52);box-shadow:0 14px 36px rgba(255,69,58,.10)}
+    .hero{display:grid;justify-items:center;text-align:center;gap:10px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+    .ringWrap{position:relative;width:170px;height:170px;display:grid;place-items:center}
+    .ringGlow{position:absolute;inset:32px;border-radius:999px;box-shadow:0 0 32px var(--ringGlow);pointer-events:none}
+    .ring{width:170px;height:170px;transform:rotate(-90deg)}
+    .ringTrack{fill:none;stroke:var(--ringTrack);stroke-width:14}
+    .ringProgress{fill:none;stroke:var(--pri);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset .35s ease-out}
+    .ringNumber{position:absolute;font-size:68px;line-height:1;font-weight:800;letter-spacing:-.03em}
+    .heroLabel{font-size:36px;font-weight:700;letter-spacing:-.02em;margin-top:-4px}
+    .heroSub{font-size:12px;color:var(--mut)}
 
-    .label{font-size:12px;color:var(--mut);margin-bottom:6px;font-weight:700}
-    .grid{display:grid;gap:12px}
-    @media(min-width:760px){.grid.cols2{grid-template-columns:1fr 1fr}}
+    .sectionTitle{text-align:center;font-size:40px;font-weight:500;margin:0 0 12px;letter-spacing:-.02em}
+    .field{display:grid;gap:6px;margin-bottom:10px}
+    .fieldHead{display:flex;align-items:center;gap:6px;font-weight:700}
+    .fieldIcon{width:16px;height:16px;color:#6f89da;display:block}
+    .inputWrap{position:relative}
+    input{width:100%;background:var(--input);border:1px solid rgba(143,167,255,.15);border-radius:11px;padding:13px 42px 13px 12px;color:var(--text);font-size:17px;outline:none}
+    .calIcon{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#7389d5;pointer-events:none}
 
-    input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--text);padding:12px;border-radius:14px;outline:none}
-    input:focus{border-color:rgba(10,132,255,.65);box-shadow:0 0 0 3px rgba(10,132,255,.16)}
+    .quickRow{display:flex;gap:10px;margin:6px 0 12px}
+    .quickBtn{width:48px;height:44px;border:none;border-radius:11px;background:#28356f;color:var(--text);font-weight:700;font-size:24px}
+    .quickBtn.active{background:#4f60a7}
 
-    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .addTripActions{justify-content:center;margin-top:8px}
-    .saveBtn{width:min(100%,360px);height:50px;border-radius:16px;font-size:16px}
-    button{border:none;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#2c9bff,#0A84FF);color:#fff}
-    button.secondary{background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text)}
-    button.danger{background:rgba(255,69,58,.18);border:1px solid rgba(255,69,58,.35);color:#fff}
+    .tripMeta{margin:0 0 8px;color:var(--mut)}
+    .actions{display:grid;gap:8px}
+    .saveBtn{width:100%;height:44px;border:none;border-radius:11px;background:var(--pri);color:#fff;font-weight:700;font-size:30px}
+    .subActions{display:flex;justify-content:space-between;align-items:center}
+    .secondary{border:1px solid rgba(143,167,255,.22);background:rgba(255,255,255,.05);color:var(--text);border-radius:10px;padding:8px 10px}
+    .error{min-height:16px;font-size:12px;color:#ffcbcb}
     button:disabled{opacity:.5;cursor:not-allowed}
 
-    .mut{color:var(--mut)}
-    .error{font-size:12px;color:#ffd6d3;min-height:18px}
-
-    .tripRow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.04);margin-bottom:8px}
+    .tripsTitle{margin:0 0 8px;font-size:16px;font-weight:700}
+    .tripRow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.03);margin-bottom:8px}
     .tripMain{font-weight:700}
-    .tripSub{font-size:12px;color:var(--mut);margin-top:4px}
-    .iconBtn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px}
-    .icon{width:14px;height:14px;display:block}
+    .tripSub{font-size:12px;color:var(--mut);margin-top:3px}
+    .rowBtns{display:flex;gap:6px}
+    .iconBtn{display:inline-flex;align-items:center;gap:4px;padding:7px 8px;font-size:12px;border-radius:9px;border:1px solid rgba(143,167,255,.2);background:rgba(255,255,255,.04);color:var(--text)}
+    .iconBtn.danger{border-color:rgba(255,122,122,.3);color:#ffdada;background:rgba(255,72,72,.08)}
+    .icon{width:13px;height:13px}
 
-    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;background:rgba(255,255,255,.14);border:1px solid var(--stroke);padding:10px 12px;border-radius:12px;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
-    .toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-3px)}
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:20;background:rgba(20,30,68,.96);border:1px solid var(--stroke);padding:8px 10px;border-radius:10px;display:flex;gap:8px;align-items:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
+    .toast.show{opacity:1;pointer-events:auto}
     .hide{display:none}
+    .subtitle{font-size:11px;color:#7f8cc6;text-align:center}
   </style>
 </head>
 <body>
   <main id="appWrap" class="wrap">
-    <header>
-      <h1 class="title">Schengen Days</h1>
-      <div class="subtitle">Track your 90/180 days offline</div>
-    </header>
-
-    <section id="hero" class="card hero safe" aria-live="polite">
-      <div class="heroLabel">Status</div>
-      <div id="heroPrimary" class="heroPrimary">90</div>
-      <div id="heroUnit" class="heroUnit">days left</div>
-      <div id="heroSecondary" class="heroSecondary">Available under the 90/180 rule</div>
-      <div id="heroNotice" class="heroNotice"></div>
+    <section id="hero" class="card hero" aria-live="polite">
+      <div class="ringWrap">
+        <div class="ringGlow"></div>
+        <svg class="ring" viewBox="0 0 170 170" aria-hidden="true">
+          <circle class="ringTrack" cx="85" cy="85" r="62"></circle>
+          <circle id="heroRingProgress" class="ringProgress" cx="85" cy="85" r="62"></circle>
+        </svg>
+        <div id="ringNumber" class="ringNumber">90</div>
+      </div>
+      <div id="heroLabel" class="heroLabel">Days left</div>
+      <div id="heroSentence" class="heroSub">If you enter today, you must leave by —.</div>
     </section>
 
     <section class="card">
-      <h2 style="margin:0 0 10px;font-size:18px">Add a trip</h2>
-      <div class="grid cols2">
-        <div>
-          <div class="label">Entry date</div>
+      <h2 class="sectionTitle">Add a trip</h2>
+
+      <div class="field">
+        <div class="fieldHead">
+          <svg class="fieldIcon" viewBox="0 0 24 24" fill="none"><path d="M18 12H4m0 0 5-5m-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Entry date</span>
+        </div>
+        <div class="inputWrap">
           <input type="date" id="entryDate" />
+          <svg class="calIcon" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
-        <div>
-          <div class="label">Exit date</div>
+      </div>
+
+      <div class="field">
+        <div class="fieldHead">
+          <svg class="fieldIcon" viewBox="0 0 24 24" fill="none"><path d="M18 12H4m0 0 5-5m-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Exit date</span>
+        </div>
+        <div class="inputWrap">
           <input type="date" id="exitDate" />
+          <svg class="calIcon" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
       </div>
 
-      <div class="row" style="margin-top:10px">
-        <button class="secondary" type="button" data-quick="1">+1</button>
-        <button class="secondary" type="button" data-quick="7">+7</button>
-        <button class="secondary" type="button" data-quick="14">+14</button>
-        <button class="secondary" type="button" data-quick="30">+30</button>
+      <div class="quickRow">
+        <button class="quickBtn" type="button" data-quick="1">1</button>
+        <button class="quickBtn" type="button" data-quick="7">7</button>
+        <button class="quickBtn" type="button" data-quick="14">14</button>
+        <button class="quickBtn" type="button" data-quick="30">30</button>
       </div>
 
-      <div class="row" style="justify-content:space-between;margin-top:8px">
-        <div class="mut">Trip length: <strong id="tripLength">—</strong></div>
-        <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
-      </div>
-      <div class="row addTripActions">
-        <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
-        <button id="saveTripBtn" type="button" class="saveBtn">Save trip</button>
+      <p class="tripMeta">Trip length: <strong id="tripLength">—</strong></p>
+      <div class="actions">
+        <button id="saveTripBtn" type="button" class="saveBtn">Save</button>
+        <div class="subActions">
+          <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
+          <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
+        </div>
       </div>
       <div id="tripError" class="error"></div>
     </section>
 
     <section class="card">
-      <h2 style="margin:0 0 10px;font-size:18px">Your trips</h2>
-      <div id="tripsEmpty" class="mut">You haven’t added any trips yet.</div>
+      <h3 class="tripsTitle">Your trips</h3>
+      <div id="tripsEmpty" class="tripSub">You haven’t added any trips yet.</div>
       <div id="tripsList"></div>
     </section>
 
-    <div class="subtitle">Estimates only. Always verify official Schengen rules.</div>
+    <div class="subtitle">Estimates only. Verify official Schengen rules.</div>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite">

@@ -172,22 +172,26 @@ function setHero() {
   hero.classList.remove("safe", "warning", "danger", "critical");
   hero.classList.add(status);
 
-  el("heroPrimary").textContent = String(remaining);
-  el("heroUnit").textContent = "days left";
-  el("heroSecondary").textContent = "Available under the 90/180 rule";
-  el("heroNotice").textContent = "";
+  const radius = 62;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.max(0, Math.min(1, remaining / 90));
+  const ring = el("heroRingProgress");
+  ring.style.strokeDasharray = `${circumference.toFixed(2)} ${circumference.toFixed(2)}`;
+  ring.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(2);
+
+  el("ringNumber").textContent = String(remaining);
+  el("heroLabel").textContent = "Days left";
 
   if (used > 90) {
     const overstayDays = used - 90;
     const next = getNextPossibleEntry(todayIndex);
-    el("heroNotice").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
+    el("heroSentence").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
     return;
   }
 
-  if (remaining === 0) {
-    const next = getNextPossibleEntry(todayIndex);
-    el("heroNotice").textContent = `Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
-  }
+  const stayDays = remaining > 0 ? remaining : 1;
+  const leaveBy = addDays(todayIndex, stayDays - 1);
+  el("heroSentence").textContent = `If you enter today, you must leave by ${fmtYMD(fromDayIndex(leaveBy))}.`;
 }
 
 function showToast(text, canUndo = false) {
@@ -201,7 +205,7 @@ function showToast(text, canUndo = false) {
   }, canUndo ? 5200 : 1700);
 }
 
-function quickSet(n) {
+function quickSet(n, btn = null) {
   let entry = el("entryDate").value;
   if (toDayIndex(entry) === null) {
     entry = fromDayIndex(Math.floor(Date.now() / DAY_MS));
@@ -211,6 +215,10 @@ function quickSet(n) {
   const endIdx = addDays(startIdx, Number(n) - 1);
   el("exitDate").value = fromDayIndex(endIdx);
   syncTripForm();
+  if (btn) {
+    document.querySelectorAll(".quickBtn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
 }
 
 function swapDates() {
@@ -248,12 +256,14 @@ function setEditMode(index) {
   el("exitDate").value = t.exit;
   el("cancelEditBtn").classList.remove("hide");
   syncTripForm();
+  document.querySelectorAll(".quickBtn").forEach(b => b.classList.remove("active"));
 }
 
 function clearEditMode() {
   editingIndex = null;
   el("cancelEditBtn").classList.add("hide");
   syncTripForm();
+  document.querySelectorAll(".quickBtn").forEach(b => b.classList.remove("active"));
 }
 
 function deleteTrip(index) {
@@ -297,7 +307,7 @@ function renderTrips() {
         <div class="tripMain">${fmtYMD(t.entry)} → ${fmtYMD(t.exit)}</div>
         <div class="tripSub">${len} days</div>
       </div>
-      <div class="row">
+      <div class="rowBtns">
         <button class="secondary iconBtn" data-edit="${i}" aria-label="Edit trip">
           <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="2"/><path d="m12 6 4 4" stroke="currentColor" stroke-width="2"/></svg>
           Edit
@@ -359,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
   el("swapDatesBtn").addEventListener("click", swapDates);
 
   document.querySelectorAll("[data-quick]").forEach(btn => {
-    btn.addEventListener("click", () => quickSet(btn.dataset.quick));
+    btn.addEventListener("click", () => quickSet(btn.dataset.quick, btn));
   });
 
   el("tripsList").addEventListener("click", (e) => {
