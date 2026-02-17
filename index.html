@@ -4,96 +4,259 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Schengen Days</title>
-  <meta name="theme-color" content="#0A84FF" />
+  <meta name="theme-color" content="#0B1220" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="./design-tokens.css" />
   <style>
-    :root{
-      color-scheme: dark;
-      --bg:#060b1c;
-      --bg2:#0b1635;
-      --card:#0e1840;
-      --input:#243066;
-      --stroke:rgba(143,167,255,.18);
-      --text:#eef2ff;
-      --mut:#a8b4e8;
-      --pri:#2f81ff;
-      --ringTrack:#30456f;
-      --ringGlow:rgba(47,129,255,.35);
-      --r:16px;
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    .app {
+      margin: 0;
+      min-height: 100%;
+      font: var(--font-body)/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+      font-weight: var(--font-weight-body);
+      color: var(--color-text-primary);
+      background: var(--color-bg);
+      -webkit-font-smoothing: antialiased;
+      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Arial,sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(1100px 560px at 20% -20%, rgba(47,129,255,.13), transparent 60%),
-        linear-gradient(180deg,var(--bg2),var(--bg));
-      -webkit-font-smoothing:antialiased;
-      padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+
+    .container {
+      max-width: var(--container-max-width);
+      margin: 0 auto;
+      padding: var(--space-sm) var(--space-sm) calc(var(--space-xxl) + env(safe-area-inset-bottom));
+      display: grid;
+      gap: var(--space-sm);
     }
-    .wrap{max-width:420px;margin:0 auto;padding:10px 10px calc(12px + env(safe-area-inset-bottom));display:grid;gap:10px}
-    .card{background:linear-gradient(180deg,rgba(15,26,71,.92),rgba(12,20,56,.92));border:1px solid var(--stroke);border-radius:14px;padding:14px}
 
-    .hero{display:grid;justify-items:center;text-align:center;gap:10px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
-    .ringWrap{position:relative;width:170px;height:170px;display:grid;place-items:center}
-    .ringGlow{position:absolute;inset:32px;border-radius:999px;box-shadow:0 0 32px var(--ringGlow);pointer-events:none}
-    .ring{width:170px;height:170px;transform:rotate(-90deg)}
-    .ringTrack{fill:none;stroke:var(--ringTrack);stroke-width:14}
-    .ringProgress{fill:none;stroke:var(--pri);stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset .35s ease-out}
-    .ringNumber{position:absolute;font-size:68px;line-height:1;font-weight:800;letter-spacing:-.03em}
-    .heroLabel{font-size:36px;font-weight:700;letter-spacing:-.02em;margin-top:-4px}
-    .heroSub{font-size:12px;color:var(--mut)}
+    .card {
+      background: var(--color-card-glass);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-card);
+      padding: var(--card-padding);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+    }
 
-    .sectionTitle{text-align:center;font-size:40px;font-weight:500;margin:0 0 12px;letter-spacing:-.02em}
-    .field{display:grid;gap:6px;margin-bottom:10px}
-    .fieldHead{display:flex;align-items:center;gap:6px;font-weight:700}
-    .fieldIcon{width:16px;height:16px;color:#6f89da;display:block}
-    .inputWrap{position:relative}
-    input{width:100%;background:var(--input);border:1px solid rgba(143,167,255,.15);border-radius:11px;padding:13px 42px 13px 12px;color:var(--text);font-size:17px;outline:none}
-    .calIcon{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:#7389d5;pointer-events:none}
+    .hero {
+      display: grid;
+      justify-items: center;
+      text-align: center;
+      gap: var(--space-md);
+    }
 
-    .quickRow{display:flex;gap:10px;margin:6px 0 12px}
-    .quickBtn{width:48px;height:44px;border:none;border-radius:11px;background:#28356f;color:var(--text);font-weight:700;font-size:24px}
-    .quickBtn.active{background:#4f60a7}
+    .ring {
+      position: relative;
+      width: var(--ring-size);
+      height: var(--ring-size);
+      display: grid;
+      place-items: center;
+    }
 
-    .tripMeta{margin:0 0 8px;color:var(--mut)}
-    .actions{display:grid;gap:8px}
-    .saveBtn{width:100%;height:44px;border:none;border-radius:11px;background:var(--pri);color:#fff;font-weight:700;font-size:30px}
-    .subActions{display:flex;justify-content:space-between;align-items:center}
-    .secondary{border:1px solid rgba(143,167,255,.22);background:rgba(255,255,255,.05);color:var(--text);border-radius:10px;padding:8px 10px}
-    .error{min-height:16px;font-size:12px;color:#ffcbcb}
-    button:disabled{opacity:.5;cursor:not-allowed}
+    .ringSvg {
+      width: var(--ring-size);
+      height: var(--ring-size);
+      transform: rotate(-90deg);
+    }
 
-    .tripsTitle{margin:0 0 8px;font-size:16px;font-weight:700}
-    .tripRow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:10px;border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,.03);margin-bottom:8px}
-    .tripMain{font-weight:700}
-    .tripSub{font-size:12px;color:var(--mut);margin-top:3px}
-    .rowBtns{display:flex;gap:6px}
-    .iconBtn{display:inline-flex;align-items:center;gap:4px;padding:7px 8px;font-size:12px;border-radius:9px;border:1px solid rgba(143,167,255,.2);background:rgba(255,255,255,.04);color:var(--text)}
-    .iconBtn.danger{border-color:rgba(255,122,122,.3);color:#ffdada;background:rgba(255,72,72,.08)}
-    .icon{width:13px;height:13px}
+    .ringTrack { fill: none; stroke: var(--color-border); stroke-width: var(--ring-stroke); }
+    .ringProgress {
+      fill: none;
+      stroke: var(--color-primary);
+      stroke-width: var(--ring-stroke);
+      stroke-linecap: round;
+      transition: stroke-dashoffset .35s ease-out;
+    }
 
-    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:20;background:rgba(20,30,68,.96);border:1px solid var(--stroke);padding:8px 10px;border-radius:10px;display:flex;gap:8px;align-items:center;opacity:0;pointer-events:none;transition:opacity .25s ease}
-    .toast.show{opacity:1;pointer-events:auto}
-    .hide{display:none}
-    .subtitle{font-size:11px;color:#7f8cc6;text-align:center}
+    .ringNumber {
+      position: absolute;
+      font-size: var(--font-hero-number);
+      font-weight: var(--font-weight-hero);
+      line-height: 1;
+    }
+
+    .heroLabel {
+      margin: 0;
+      font-size: var(--font-hero-label);
+      font-weight: var(--font-weight-title);
+      color: var(--color-text-secondary);
+    }
+
+    .heroSub {
+      margin: 0;
+      font-size: var(--font-small);
+      color: var(--color-text-muted);
+    }
+
+    .sectionTitle {
+      margin: 0 0 var(--space-md);
+      text-align: center;
+      font-size: var(--font-section-title);
+      font-weight: var(--font-weight-title);
+    }
+
+    .field { display: grid; gap: var(--space-xs); margin-bottom: var(--space-sm); }
+
+    .fieldHead {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: var(--font-body);
+      color: var(--color-text-secondary);
+    }
+
+    .fieldIcon,
+    .calIcon {
+      width: var(--space-md);
+      height: var(--space-md);
+      color: var(--color-text-muted);
+      flex: 0 0 auto;
+    }
+
+    .input {
+      width: 100%;
+      height: var(--input-height);
+      background: var(--color-card);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-input);
+      color: var(--color-text-primary);
+      font-size: var(--font-body);
+      padding: 0 var(--space-xl) 0 var(--space-md);
+      outline: none;
+    }
+
+    .input:focus { border-color: var(--color-primary); }
+
+    .inputWrap { position: relative; }
+
+    .inputWrap .calIcon {
+      position: absolute;
+      right: var(--space-md);
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .input::-webkit-calendar-picker-indicator {
+      opacity: 0;
+      position: absolute;
+      right: 0;
+      width: var(--space-xl);
+      height: 100%;
+    }
+
+    .quick-pills { display: flex; gap: var(--space-sm); margin: var(--space-sm) 0 var(--space-md); }
+
+    .pill {
+      min-width: var(--button-height);
+      height: var(--button-height);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-pill);
+      background: var(--color-card);
+      color: var(--color-text-primary);
+      font-size: var(--font-body);
+      font-weight: var(--font-weight-title);
+    }
+
+    .pill.active {
+      background: var(--color-primary-soft);
+      border-color: var(--color-primary);
+    }
+
+    .tripMeta { margin: 0 0 var(--space-md); color: var(--color-text-secondary); }
+
+    .btn-primary {
+      width: 100%;
+      height: var(--button-height);
+      border: none;
+      border-radius: var(--radius-button);
+      background: var(--color-primary);
+      color: var(--color-text-primary);
+      font-size: var(--font-section-title);
+      font-weight: var(--font-weight-title);
+    }
+
+    .actions { display: grid; gap: var(--space-sm); }
+    .subActions { display: flex; justify-content: space-between; gap: var(--space-sm); }
+
+    .secondary {
+      border: 1px solid var(--color-border);
+      background: transparent;
+      color: var(--color-text-primary);
+      border-radius: var(--radius-pill);
+      padding: var(--space-xs) var(--space-sm);
+      font-size: var(--font-small);
+    }
+
+    .error { min-height: var(--space-md); font-size: var(--font-small); color: var(--color-danger); }
+    .hide { display: none; }
+
+    .tripsTitle { margin: 0 0 var(--space-sm); font-size: var(--font-hero-label); font-weight: var(--font-weight-title); }
+
+    .tripRow {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-sm);
+      align-items: flex-start;
+      padding: var(--space-sm);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-input);
+      margin-bottom: var(--space-sm);
+      background: var(--color-card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .tripMain { font-weight: var(--font-weight-title); }
+    .tripSub { font-size: var(--font-small); color: var(--color-text-muted); margin-top: var(--space-xs); }
+    .rowBtns { display: flex; gap: var(--space-xs); }
+    .iconBtn { display: inline-flex; align-items: center; gap: var(--space-xs); }
+    .iconBtn.danger { color: var(--color-danger); border-color: var(--color-danger); }
+    .icon { width: var(--font-small); height: var(--font-small); }
+
+    .subtitle {
+      font-size: var(--font-small);
+      color: var(--color-text-muted);
+      text-align: center;
+      margin: var(--space-xs) 0 0;
+      padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(var(--space-xxl) + env(safe-area-inset-bottom));
+      z-index: 20;
+      border-radius: var(--radius-button);
+      border: 1px solid var(--color-border);
+      background: var(--color-card);
+      box-shadow: var(--shadow-soft);
+      padding: var(--space-sm) var(--space-md);
+      display: flex;
+      gap: var(--space-sm);
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .toast.show { opacity: 1; pointer-events: auto; }
   </style>
 </head>
-<body>
-  <main id="appWrap" class="wrap">
+<body class="app">
+  <main id="appWrap" class="container">
     <section id="hero" class="card hero" aria-live="polite">
-      <div class="ringWrap">
-        <div class="ringGlow"></div>
-        <svg class="ring" viewBox="0 0 170 170" aria-hidden="true">
-          <circle class="ringTrack" cx="85" cy="85" r="62"></circle>
-          <circle id="heroRingProgress" class="ringProgress" cx="85" cy="85" r="62"></circle>
+      <div class="ring">
+        <svg class="ringSvg" viewBox="0 0 180 180" aria-hidden="true">
+          <circle class="ringTrack" cx="90" cy="90" r="62"></circle>
+          <circle id="heroRingProgress" class="ringProgress" cx="90" cy="90" r="62"></circle>
         </svg>
         <div id="ringNumber" class="ringNumber">90</div>
       </div>
-      <div id="heroLabel" class="heroLabel">Days left</div>
-      <div id="heroSentence" class="heroSub">If you enter today, you must leave by —.</div>
+      <p id="heroLabel" class="heroLabel">Days left</p>
+      <p id="heroSentence" class="heroSub">If you enter today, you must leave by —.</p>
     </section>
 
     <section class="card">
@@ -105,7 +268,7 @@
           <span>Entry date</span>
         </div>
         <div class="inputWrap">
-          <input type="date" id="entryDate" />
+          <input class="input" type="date" id="entryDate" />
           <svg class="calIcon" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
       </div>
@@ -116,21 +279,21 @@
           <span>Exit date</span>
         </div>
         <div class="inputWrap">
-          <input type="date" id="exitDate" />
+          <input class="input" type="date" id="exitDate" />
           <svg class="calIcon" viewBox="0 0 24 24" fill="none"><path d="M7 2v3M17 2v3M3 9h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
       </div>
 
-      <div class="quickRow">
-        <button class="quickBtn" type="button" data-quick="1">1</button>
-        <button class="quickBtn" type="button" data-quick="7">7</button>
-        <button class="quickBtn" type="button" data-quick="14">14</button>
-        <button class="quickBtn" type="button" data-quick="30">30</button>
+      <div class="quick-pills">
+        <button class="pill quickBtn" type="button" data-quick="1">1</button>
+        <button class="pill quickBtn" type="button" data-quick="7">7</button>
+        <button class="pill quickBtn" type="button" data-quick="14">14</button>
+        <button class="pill quickBtn" type="button" data-quick="30">30</button>
       </div>
 
       <p class="tripMeta">Trip length: <strong id="tripLength">—</strong></p>
       <div class="actions">
-        <button id="saveTripBtn" type="button" class="saveBtn">Save</button>
+        <button id="saveTripBtn" type="button" class="btn-primary">Save</button>
         <div class="subActions">
           <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
           <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>

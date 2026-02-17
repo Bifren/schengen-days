@@ -1,5 +1,5 @@
-const CACHE = "schengen-days-v4";
-const ASSETS = ["./","./index.html","./app.js","./manifest.webmanifest"];
+const CACHE = "schengen-days-v5";
+const ASSETS = ["./", "./index.html", "./design-tokens.css", "./app.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
