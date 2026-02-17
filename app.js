@@ -1,13 +1,13 @@
 /*
 Manual test checklist:
-1) Add trip with valid dates -> saved, hero updates remaining days.
-2) Invalid range (exit < entry) -> error appears, Save disabled, Swap dates shown.
-3) Edit/Delete actions work on trip cards.
-4) Delete shows "Trip deleted — Undo" and undo restores within 5 seconds.
-5) Reload page keeps trips via localStorage key schengen_days_trips_v3.
+1) 2026-02-10 → 2026-02-17 shows 8 days (inclusive).
+2) +7 quick button sets exit so trip length becomes 7 days.
+3) Invalid range (exit < entry) shows error and disables Save.
+4) Hero text updates after add/edit/delete and page refresh.
+5) Delete + Undo (within 5s) restores the removed trip.
 */
 
-const dayMs = 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const KEY = "schengen_days_trips_v3";
 
 let trips = [];
@@ -18,96 +18,118 @@ let pendingDeleted = null;
 
 const el = (id) => document.getElementById(id);
 
-function toDay(dateStrOrDate) {
-  const d = (dateStrOrDate instanceof Date) ? dateStrOrDate : new Date(dateStrOrDate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+function parseYMD(ymd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ""));
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const ts = Date.UTC(y, mo - 1, d);
+  const dt = new Date(ts);
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return { y, mo, d };
 }
 
-function toISO(d) {
-  return toDay(d).toISOString().slice(0, 10);
+function toDayIndex(ymd) {
+  const p = parseYMD(ymd);
+  if (!p) return null;
+  return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / DAY_MS);
 }
 
-function fmt(d) {
-  if (!d) return "—";
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+function fromDayIndex(i) {
+  return new Date(i * DAY_MS).toISOString().slice(0, 10);
 }
 
-function addDays(date, n) {
-  return new Date(toDay(date).getTime() + n * dayMs);
+function addDays(dayIndex, n) {
+  return dayIndex + n;
 }
 
-function daysInclusive(a, b) {
-  const A = toDay(a).getTime();
-  const B = toDay(b).getTime();
-  if (B < A) return 0;
-  return Math.floor((B - A) / dayMs) + 1;
+function diffDaysInclusive(startIndex, endIndex) {
+  if (endIndex < startIndex) return 0;
+  return endIndex - startIndex + 1;
 }
 
-function clampTrip(trip) {
-  const a = toDay(trip.entry);
-  const b = toDay(trip.exit);
-  return { entry: (a <= b) ? a : b, exit: (a <= b) ? b : a };
+function fmtYMD(ymd) {
+  const i = toDayIndex(ymd);
+  if (i === null) return "—";
+  return new Date(i * DAY_MS).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC"
+  });
 }
 
 function normalizeTrips(list) {
-  const prepared = list.map(clampTrip).sort((a, b) => a.entry - b.entry);
-  if (prepared.length === 0) return [];
-  const merged = [prepared[0]];
-  for (let i = 1; i < prepared.length; i++) {
+  const indexed = [];
+  for (const t of list || []) {
+    const a = toDayIndex(t.entry);
+    const b = toDayIndex(t.exit);
+    if (a === null || b === null) continue;
+    indexed.push(a <= b ? { entry: a, exit: b } : { entry: b, exit: a });
+  }
+
+  indexed.sort((x, y) => x.entry - y.entry);
+  if (!indexed.length) return [];
+
+  const merged = [indexed[0]];
+  for (let i = 1; i < indexed.length; i++) {
     const prev = merged[merged.length - 1];
-    const curr = prepared[i];
-    if (curr.entry <= addDays(prev.exit, 1)) {
+    const curr = indexed[i];
+    if (curr.entry <= prev.exit + 1) {
       if (curr.exit > prev.exit) prev.exit = curr.exit;
     } else {
       merged.push(curr);
     }
   }
-  return merged;
+
+  return merged.map(t => ({ entry: fromDayIndex(t.entry), exit: fromDayIndex(t.exit) }));
 }
 
 function loadTrips() {
   try {
     const raw = localStorage.getItem(KEY);
-    return normalizeTrips(raw ? JSON.parse(raw) : []);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return normalizeTrips(parsed);
   } catch {
     return [];
   }
 }
 
 function saveTrips(nextTrips) {
-  const normalized = normalizeTrips(nextTrips);
-  const raw = normalized.map(t => ({ entry: toISO(t.entry), exit: toISO(t.exit) }));
-  localStorage.setItem(KEY, JSON.stringify(raw));
+  localStorage.setItem(KEY, JSON.stringify(normalizeTrips(nextTrips)));
 }
 
-function window180(refDate) {
-  const end = toDay(refDate);
-  const start = addDays(end, -179);
-  return { start, end };
+function computeUsedDays(asOfDayIndex, sourceTrips = trips) {
+  const normalized = normalizeTrips(sourceTrips);
+  const windowStart = asOfDayIndex - 179;
+  const windowEnd = asOfDayIndex;
+  let used = 0;
+
+  for (const t of normalized) {
+    const s = toDayIndex(t.entry);
+    const e = toDayIndex(t.exit);
+    if (s === null || e === null) continue;
+    const overlapStart = Math.max(s, windowStart);
+    const overlapEnd = Math.min(e, windowEnd);
+    used += diffDaysInclusive(overlapStart, overlapEnd);
+  }
+
+  return used;
 }
 
-function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
-  const start = aStart > bStart ? aStart : bStart;
-  const end = aEnd < bEnd ? aEnd : bEnd;
-  return start > end ? 0 : daysInclusive(start, end);
+function computeRemaining(asOfDayIndex, sourceTrips = trips) {
+  return Math.max(0, 90 - computeUsedDays(asOfDayIndex, sourceTrips));
 }
 
-function daysUsedLast180(refDate, t = trips) {
-  const w = window180(refDate);
-  return normalizeTrips(t).reduce((sum, trip) => sum + overlapDaysInclusive(w.start, w.end, trip.entry, trip.exit), 0);
-}
-
-function remainingLast180(refDate, t = trips) {
-  return Math.max(0, 90 - daysUsedLast180(refDate, t));
-}
-
-function nextSafeEntryDate(startDate, t = trips) {
-  let d = toDay(startDate);
+function getNextPossibleEntry(asOfDayIndex, sourceTrips = trips) {
+  let d = asOfDayIndex;
   for (let i = 0; i < 730; i++) {
-    if (remainingLast180(d, t) > 0) return d;
+    if (computeRemaining(d, sourceTrips) > 0) return d;
     d = addDays(d, 1);
   }
-  return toDay(startDate);
+  return asOfDayIndex;
 }
 
 function getHeroStatus(remaining, used) {
@@ -120,11 +142,16 @@ function getHeroStatus(remaining, used) {
 function selectedTripInfo() {
   const entry = el("entryDate").value;
   const exit = el("exitDate").value;
-  if (!entry || !exit) return { ok: false, days: null, msg: "", invalidOrder: false };
-  const a = toDay(entry);
-  const b = toDay(exit);
-  if (b < a) return { ok: false, days: null, msg: "Exit date must be on or after entry date.", invalidOrder: true };
-  return { ok: true, days: daysInclusive(a, b), msg: "", invalidOrder: false };
+  const eIdx = toDayIndex(entry);
+  const xIdx = toDayIndex(exit);
+
+  if (eIdx === null || xIdx === null) {
+    return { ok: false, days: null, msg: "", invalidOrder: false };
+  }
+  if (xIdx < eIdx) {
+    return { ok: false, days: null, msg: "Exit date must be on or after entry date.", invalidOrder: true };
+  }
+  return { ok: true, days: diffDaysInclusive(eIdx, xIdx), msg: "", invalidOrder: false };
 }
 
 function syncTripForm() {
@@ -136,29 +163,32 @@ function syncTripForm() {
 }
 
 function setHero() {
-  const now = new Date();
-  const used = daysUsedLast180(now);
-  const remaining = remainingLast180(now);
+  const todayIndex = toDayIndex(fromDayIndex(Math.floor(Date.now() / DAY_MS)));
+  const used = computeUsedDays(todayIndex);
+  const remaining = Math.max(0, 90 - used);
   const status = getHeroStatus(remaining, used);
+
   const hero = el("hero");
   hero.classList.remove("safe", "warning", "danger", "critical");
   hero.classList.add(status);
 
   if (used > 90) {
     const overstayDays = used - 90;
-    el("heroPrimary").textContent = `Overstay: ${overstayDays} day(s)`;
-    el("heroSecondary").textContent = `Next possible entry: ${fmt(nextSafeEntryDate(now))}`;
+    const next = getNextPossibleEntry(todayIndex);
+    el("heroPrimary").textContent = `${remaining} days left`;
+    el("heroSecondary").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
     return;
   }
 
   if (remaining === 0) {
-    el("heroPrimary").textContent = "You have 0 days left";
-    el("heroSecondary").textContent = `Next possible entry: ${fmt(nextSafeEntryDate(now))}`;
+    const next = getNextPossibleEntry(todayIndex);
+    el("heroPrimary").textContent = "0 days left";
+    el("heroSecondary").textContent = `You can’t enter today. Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
     return;
   }
 
-  el("heroPrimary").textContent = `You can stay: ${remaining} days`;
-  el("heroSecondary").textContent = "in the next 180 days";
+  el("heroPrimary").textContent = `${remaining} days left`;
+  el("heroSecondary").textContent = `Available under the 90/180 rule. If you enter today, you can stay up to ${remaining} days.`;
 }
 
 function showToast(text, canUndo = false) {
@@ -172,13 +202,15 @@ function showToast(text, canUndo = false) {
   }, canUndo ? 5200 : 1700);
 }
 
-function quickSet(days) {
+function quickSet(n) {
   let entry = el("entryDate").value;
-  if (!entry) {
-    entry = toISO(new Date());
+  if (toDayIndex(entry) === null) {
+    entry = fromDayIndex(Math.floor(Date.now() / DAY_MS));
     el("entryDate").value = entry;
   }
-  el("exitDate").value = toISO(addDays(entry, Number(days) - 1));
+  const startIdx = toDayIndex(entry);
+  const endIdx = addDays(startIdx, Number(n) - 1);
+  el("exitDate").value = fromDayIndex(endIdx);
   syncTripForm();
 }
 
@@ -195,7 +227,7 @@ function saveTripFromForm() {
   const info = selectedTripInfo();
   if (!info.ok) return;
 
-  const trip = clampTrip({ entry: el("entryDate").value, exit: el("exitDate").value });
+  const trip = { entry: el("entryDate").value, exit: el("exitDate").value };
   if (editingIndex === null) {
     trips.push(trip);
     showToast("Trip saved");
@@ -212,10 +244,9 @@ function saveTripFromForm() {
 
 function setEditMode(index) {
   editingIndex = index;
-  const trip = trips[index];
-  el("entryDate").value = toISO(trip.entry);
-  el("exitDate").value = toISO(trip.exit);
-  el("saveTripBtn").textContent = "Save trip";
+  const t = trips[index];
+  el("entryDate").value = t.entry;
+  el("exitDate").value = t.exit;
   el("cancelEditBtn").classList.remove("hide");
   syncTripForm();
 }
@@ -257,22 +288,22 @@ function renderTrips() {
   list.innerHTML = "";
   el("tripsEmpty").classList.toggle("hide", trips.length > 0);
 
-  for (let idx = trips.length - 1; idx >= 0; idx--) {
-    const t = trips[idx];
-    const days = daysInclusive(t.entry, t.exit);
+  for (let i = trips.length - 1; i >= 0; i--) {
+    const t = trips[i];
+    const len = diffDaysInclusive(toDayIndex(t.entry), toDayIndex(t.exit));
     const row = document.createElement("div");
     row.className = "tripRow";
     row.innerHTML = `
       <div>
-        <div class="tripMain">${fmt(t.entry)} → ${fmt(t.exit)}</div>
-        <div class="tripSub">${days} days</div>
+        <div class="tripMain">${fmtYMD(t.entry)} → ${fmtYMD(t.exit)}</div>
+        <div class="tripSub">${len} days</div>
       </div>
       <div class="row">
-        <button class="secondary iconBtn" data-edit="${idx}" aria-label="Edit trip">
+        <button class="secondary iconBtn" data-edit="${i}" aria-label="Edit trip">
           <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="2"/><path d="m12 6 4 4" stroke="currentColor" stroke-width="2"/></svg>
           Edit
         </button>
-        <button class="danger iconBtn" data-del="${idx}" aria-label="Delete trip">
+        <button class="danger iconBtn" data-del="${i}" aria-label="Delete trip">
           <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 7h16" stroke="currentColor" stroke-width="2"/><path d="M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2"/><path d="M9 7V4h6v3" stroke="currentColor" stroke-width="2"/></svg>
           Delete
         </button>
@@ -288,10 +319,36 @@ function render() {
   syncTripForm();
 }
 
+function runSelfChecks() {
+  const errors = [];
+
+  const len = diffDaysInclusive(toDayIndex("2026-02-10"), toDayIndex("2026-02-17"));
+  if (len !== 8) errors.push("inclusive length failed: expected 8");
+
+  const asOf = toDayIndex("2026-02-19");
+  const start = asOf - 179;
+  if (fromDayIndex(start) !== "2025-08-24") errors.push("window start failed: expected 2025-08-24");
+
+  const sampleTrips = [{ entry: "2026-02-10", exit: "2026-02-17" }];
+  const used = computeUsedDays(asOf, sampleTrips);
+  if (used !== 8) errors.push("simple used days failed: expected 8");
+
+  const used2 = computeUsedDays(asOf, [{ entry: "2024-01-01", exit: "2024-01-10" }]);
+  if (used2 !== 0) errors.push("outside window count failed: expected 0");
+
+  const entry = toDayIndex("2026-03-01");
+  const quickExit = addDays(entry, 6);
+  if (diffDaysInclusive(entry, quickExit) !== 7) errors.push("+7 off-by-one failed: expected 7 days");
+
+  if (errors.length) {
+    errors.forEach(msg => console.error(`[self-check] ${msg}`));
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   trips = loadTrips();
 
-  const today = toISO(new Date());
+  const today = fromDayIndex(Math.floor(Date.now() / DAY_MS));
   el("entryDate").value = today;
   el("exitDate").value = today;
 
@@ -315,5 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   el("undoBtn").addEventListener("click", undoDelete);
 
+  runSelfChecks();
   render();
 });
