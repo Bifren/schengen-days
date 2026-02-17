@@ -6,373 +6,139 @@
   <title>Schengen Days</title>
   <meta name="theme-color" content="#0A84FF" />
   <link rel="manifest" href="manifest.webmanifest" />
-
   <style>
     :root{
-      --bg: #0b0f17;
-      --card: rgba(255,255,255,.06);
-      --stroke: rgba(255,255,255,.10);
-      --text: rgba(255,255,255,.92);
-      --mut: rgba(255,255,255,.62);
-      --pri: #0A84FF;
-      --ok: #34C759;
-      --warn: #FF9F0A;
-      --bad: #FF453A;
-
-      --r: 18px;
-      --shadow: 0 14px 50px rgba(0,0,0,.35);
+      color-scheme: dark;
+      --bg:#070b12;
+      --bg2:#0f1727;
+      --card:rgba(255,255,255,.08);
+      --stroke:rgba(255,255,255,.14);
+      --text:rgba(255,255,255,.95);
+      --mut:rgba(255,255,255,.64);
+      --ok:#30d158;
+      --warn:#ff9f0a;
+      --bad:#ff453a;
+      --r:22px;
+      --shadow:0 14px 36px rgba(0,0,0,.28);
     }
-
     *{box-sizing:border-box}
     html,body{height:100%}
     body{
       margin:0;
-      font:16px/1.35 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: var(--text);
+      font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Arial,sans-serif;
+      color:var(--text);
       background:
-        radial-gradient(1100px 600px at 20% -20%, rgba(10,132,255,.24), transparent 55%),
-        radial-gradient(900px 500px at 100% 0%, rgba(52,199,89,.12), transparent 55%),
-        var(--bg);
-      -webkit-font-smoothing: antialiased;
-      padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
+        radial-gradient(1200px 640px at 10% -20%, rgba(10,132,255,.25), transparent 55%),
+        radial-gradient(1000px 620px at 100% 0%, rgba(48,209,88,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
+      -webkit-font-smoothing:antialiased;
+      padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
     }
+    .wrap{max-width:900px;margin:0 auto;padding:16px 16px calc(18px + env(safe-area-inset-bottom));display:grid;gap:14px}
+    .title{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em}
+    .subtitle{margin-top:6px;color:var(--mut);font-size:12px}
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid var(--stroke);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 
-    .wrap{
-      max-width: 920px;
-      margin: 0 auto;
-      padding: 18px 16px 98px; /* bottom tab space */
-    }
+    .hero{display:grid;gap:8px}
+    .heroLabel{font-size:12px;color:var(--mut)}
+    .heroPrimary{font-size:34px;font-weight:800;letter-spacing:-.03em}
+    .heroSecondary{font-size:16px;color:var(--mut)}
+    .hero.safe{border-color:rgba(48,209,88,.34)}
+    .hero.warning{border-color:rgba(255,159,10,.34)}
+    .hero.danger{border-color:rgba(255,69,58,.38)}
+    .hero.critical{border-color:rgba(255,69,58,.52);box-shadow:0 14px 36px rgba(255,69,58,.10)}
 
-    .topbar{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-      margin-bottom: 14px;
-    }
-    .title{
-      margin:0; font-size:22px; font-weight:800; letter-spacing:-.02em;
-    }
-    .subtitle{
-      margin-top:6px;
-      font-size:12px; color:var(--mut);
-    }
+    .label{font-size:12px;color:var(--mut);margin-bottom:6px;font-weight:700}
+    .grid{display:grid;gap:12px}
+    @media(min-width:760px){.grid.cols2{grid-template-columns:1fr 1fr}}
 
-    .card{
-      background: var(--card);
-      border:1px solid var(--stroke);
-      border-radius: var(--r);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
+    input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--stroke);color:var(--text);padding:12px;border-radius:14px;outline:none}
+    input:focus{border-color:rgba(10,132,255,.65);box-shadow:0 0 0 3px rgba(10,132,255,.16)}
 
-    .grid{display:grid; gap:12px}
-    @media(min-width:780px){ .grid.cols2{grid-template-columns:1fr 1fr} }
-
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .sp{justify-content:space-between}
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    button{border:none;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#2c9bff,#0A84FF);color:#fff}
+    button.secondary{background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text)}
+    button.danger{background:rgba(255,69,58,.18);border:1px solid rgba(255,69,58,.35);color:#fff}
+    button:disabled{opacity:.5;cursor:not-allowed}
 
     .mut{color:var(--mut)}
-    .label{font-size:12px; color:var(--mut); margin-bottom:6px}
+    .error{font-size:12px;color:#ffd6d3;min-height:18px}
 
-    input{
-      background: rgba(255,255,255,.07);
-      border:1px solid var(--stroke);
-      color: var(--text);
-      padding: 11px 12px;
-      border-radius: 14px;
-      outline:none;
-      min-width: 165px;
-    }
+    .tripRow{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--stroke);border-radius:14px;background:rgba(255,255,255,.04);margin-bottom:8px}
+    .tripMain{font-weight:700}
+    .tripSub{font-size:12px;color:var(--mut);margin-top:4px}
+    .iconBtn{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;font-size:12px}
+    .icon{width:14px;height:14px;display:block}
 
-    button{
-      border:none;
-      border-radius: 14px;
-      padding: 11px 12px;
-      font-weight: 700;
-      cursor:pointer;
-      color: white;
-      background: var(--pri);
-      box-shadow: 0 10px 22px rgba(10,132,255,.22);
-    }
-    button.secondary{
-      background: rgba(255,255,255,.08);
-      border: 1px solid var(--stroke);
-      color: var(--text);
-      box-shadow:none;
-    }
-    button.danger{
-      background: rgba(255,69,58,.16);
-      border: 1px solid rgba(255,69,58,.30);
-      color: rgba(255,255,255,.92);
-      box-shadow:none;
-    }
-    button:disabled{
-      opacity:.45; cursor:not-allowed;
-    }
-
-    .badge{
-      display:inline-flex; align-items:center;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size:12px;
-      font-weight: 800;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-    }
-    .b-ok{border-color:rgba(52,199,89,.35); background: rgba(52,199,89,.16); color: var(--ok)}
-    .b-warn{border-color:rgba(255,159,10,.35); background: rgba(255,159,10,.16); color: var(--warn)}
-    .b-bad{border-color:rgba(255,69,58,.35); background: rgba(255,69,58,.16); color: var(--bad)}
-
-    .big{
-      font-size:34px; font-weight:900; letter-spacing:-.03em;
-    }
-
-    /* Progress */
-    .progress{
-      width:100%;
-      height: 10px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      overflow:hidden;
-      margin-top:10px;
-    }
-    .bar{
-      height:100%;
-      width: 0%;
-      background: var(--ok);
-      border-radius: 999px;
-      transition: width .25s ease;
-    }
-
-    /* Table */
-    table{width:100%; border-collapse:collapse}
-    th,td{padding:12px 8px; border-bottom:1px solid var(--stroke); text-align:left}
-    th{font-size:12px; color:var(--mut); font-weight:800}
-    .right{text-align:right}
-
+    .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom));z-index:20;background:rgba(255,255,255,.14);border:1px solid var(--stroke);padding:10px 12px;border-radius:12px;display:flex;gap:10px;align-items:center;opacity:0;pointer-events:none;transition:opacity .25s ease,transform .25s ease}
+    .toast.show{opacity:1;pointer-events:auto;transform:translateX(-50%) translateY(-3px)}
     .hide{display:none}
-    .error{margin-top:10px; font-size:12px; color: rgba(255,214,211,.95)}
-
-    /* Bottom tabs */
-    .tabsBottom{
-      position: fixed;
-      left: 0; right: 0;
-      bottom: 0;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(10,14,22,.62);
-      border-top: 1px solid rgba(255,255,255,.10);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-    .tabsInner{
-      max-width: 920px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
-    }
-    .tabBtn{
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 10px;
-      color: rgba(255,255,255,.75);
-      display:flex; flex-direction:column; align-items:center; gap:6px;
-      font-weight: 800;
-      box-shadow: none;
-    }
-    .tabBtn.active{
-      border-color: rgba(10,132,255,.45);
-      background: rgba(10,132,255,.18);
-      color: rgba(255,255,255,.92);
-    }
-    .ico{
-      width: 22px; height: 22px;
-      display:block;
-      opacity: .95;
-    }
-    .tabLabel{font-size:11px; letter-spacing:.01em}
-
-    /* Small helper */
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      color: rgba(255,255,255,.78);
-      font-size: 12px;
-      font-weight: 800;
-    }
   </style>
 </head>
-
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <h1 class="title">Schengen Days</h1>
-        <div class="subtitle">90 days in any rolling 180-day window • works offline • data stays on your device</div>
-      </div>
-      <span id="statusBadge" class="badge b-ok">Safe</span>
-    </div>
+  <main id="appWrap" class="wrap">
+    <header>
+      <h1 class="title">Schengen Days</h1>
+      <div class="subtitle">Track your 90/180 days offline</div>
+    </header>
 
-    <!-- OVERVIEW -->
-    <section id="tab-overview" class="grid cols2">
-      <div class="card">
-        <div class="row sp">
-          <div>
-            <div class="mut">Days used (last 180)</div>
-            <div id="used" class="big">0</div>
-          </div>
-          <div style="text-align:right">
-            <div class="mut">Days remaining</div>
-            <div id="remaining" class="big">90</div>
-          </div>
-        </div>
-
-        <div class="progress" aria-label="usage progress">
-          <div id="progressBar" class="bar"></div>
-        </div>
-
-        <div class="row sp" style="margin-top:10px">
-          <span class="chip">As of: <span id="asOf"></span></span>
-          <span class="chip"><span id="usedOf90">0</span>/90</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row sp">
-          <div>
-            <div class="mut">Next safe entry date</div>
-            <div id="nextSafe" style="font-size:18px;font-weight:900">—</div>
-            <div class="subtitle" style="margin-top:8px">Shown when you have 0 days left.</div>
-          </div>
-          <button class="secondary" id="resetBtn">Reset</button>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column:1/-1">
-        <div style="font-weight:900;margin-bottom:10px">Add a trip</div>
-
-        <div class="grid cols2">
-          <div>
-            <div class="label">Entry date</div>
-            <input type="date" id="entryDate" />
-          </div>
-          <div>
-            <div class="label">Exit date</div>
-            <input type="date" id="exitDate" />
-          </div>
-        </div>
-
-        <div class="row sp" style="margin-top:12px">
-          <div class="chip">Selected: <span id="selectedDays">1</span> day(s)</div>
-          <button id="addTripBtn">Add trip</button>
-        </div>
-
-        <div id="error" class="error"></div>
-        <div class="subtitle" style="margin-top:10px">
-          Entry and exit days are counted (inclusive).
-        </div>
-      </div>
+    <section id="hero" class="card hero safe" aria-live="polite">
+      <div class="heroLabel">Status</div>
+      <div id="heroPrimary" class="heroPrimary">You can stay: 90 days</div>
+      <div id="heroSecondary" class="heroSecondary">in the next 180 days</div>
     </section>
 
-    <!-- TRIPS -->
-    <section id="tab-trips" class="card hide">
-      <div class="row sp" style="margin-bottom:10px">
-        <div style="font-weight:900">Trips</div>
-        <span class="chip"><span id="tripCount">0</span> trip(s)</span>
-      </div>
-
-      <div id="tripsEmpty" class="mut">No trips yet. Add one in Overview.</div>
-
-      <div id="tripsTableWrap" class="hide">
-        <table>
-          <thead>
-            <tr>
-              <th>Entry → Exit</th>
-              <th class="right">Days</th>
-              <th class="right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tripsTbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- PLANNER -->
-    <section id="tab-planner" class="grid cols2 hide">
-      <div class="card">
-        <div style="font-weight:900;margin-bottom:10px">Planner</div>
-        <div class="label">If I enter on</div>
-        <input type="date" id="planEntry" />
-        <div class="subtitle" style="margin-top:10px">We simulate day-by-day to stay within 90/180.</div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:900;margin-bottom:10px">Result</div>
-
-        <div class="row sp">
-          <div>
-            <div class="mut">Max stay</div>
-            <div id="planMaxStay" class="big">0</div>
-          </div>
-          <div style="text-align:right">
-            <div class="mut">Latest exit</div>
-            <div id="planLatestExit" style="font-size:18px;font-weight:900">—</div>
-          </div>
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:18px">Add a trip</h2>
+      <div class="grid cols2">
+        <div>
+          <div class="label">Entry date</div>
+          <input type="date" id="entryDate" />
         </div>
-
-        <div style="margin-top:14px">
-          <div class="mut">If 0 days available, next safe entry:</div>
-          <div id="planNextSafe" style="font-size:18px;font-weight:900;margin-top:6px">—</div>
+        <div>
+          <div class="label">Exit date</div>
+          <input type="date" id="exitDate" />
         </div>
       </div>
+
+      <div class="row" style="margin-top:10px">
+        <button class="secondary" type="button" data-quick="1">+1</button>
+        <button class="secondary" type="button" data-quick="7">+7</button>
+        <button class="secondary" type="button" data-quick="14">+14</button>
+        <button class="secondary" type="button" data-quick="30">+30</button>
+      </div>
+      <div class="subtitle">Quick buttons set exit date from entry.</div>
+
+      <div class="row" style="justify-content:space-between;margin-top:10px">
+        <div class="mut">Trip length: <strong id="tripLength">—</strong></div>
+        <div class="row">
+          <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
+          <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
+          <button id="saveTripBtn" type="button">Save trip</button>
+        </div>
+      </div>
+      <div id="tripError" class="error"></div>
     </section>
 
-    <div class="subtitle" style="margin-top:16px">
-      Disclaimer: estimates only, not legal advice. Always verify rules for your specific visa/residency.
-    </div>
+    <section class="card">
+      <h2 style="margin:0 0 10px;font-size:18px">Your trips</h2>
+      <div id="tripsEmpty" class="mut">You haven’t added any trips yet.</div>
+      <div id="tripsList"></div>
+    </section>
+
+    <div class="subtitle">Estimates only. Always verify official Schengen rules.</div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toastText"></span>
+    <button id="undoBtn" class="secondary hide" type="button">Undo</button>
   </div>
-
-  <!-- Bottom tab bar -->
-  <nav class="tabsBottom" aria-label="Bottom tabs">
-    <div class="tabsInner">
-      <button class="tabBtn active" data-tab="overview" aria-label="Overview">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M4 12a8 8 0 1 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M12 12l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M4 12h16" stroke="currentColor" stroke-width="2" opacity=".35"/>
-        </svg>
-        <div class="tabLabel">Overview</div>
-      </button>
-
-      <button class="tabBtn" data-tab="trips" aria-label="Trips">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M7 3v3M17 3v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M5 7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-          <path d="M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <div class="tabLabel">Trips</div>
-      </button>
-
-      <button class="tabBtn" data-tab="planner" aria-label="Planner">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M12 8v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 22a10 10 0 1 0-10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M2 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".35"/>
-        </svg>
-        <div class="tabLabel">Planner</div>
-      </button>
-    </div>
-  </nav>
 
   <script src="app.js"></script>
   <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
