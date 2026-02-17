@@ -291,14 +291,22 @@ function renderDetails() {
   el("detailsTableWrap").classList.toggle("hide", details.rows.length === 0);
 }
 
+function openModal() {
+  el("detailsModal").classList.add("open");
+}
+
+function closeModal() {
+  el("detailsModal").classList.remove("open");
+}
+
 function openDetails() {
   el("detailsDate").value = toISO(new Date());
   renderDetails();
-  el("detailsModal").classList.remove("hide");
+  openModal();
 }
 
 function closeDetails() {
-  el("detailsModal").classList.add("hide");
+  closeModal();
 }
 
 function render() {
@@ -411,67 +419,72 @@ function runSelfChecks() {
   console.assert(daysInclusive("2026-03-01", "2026-03-01") === 1, "inclusive counting failed");
 }
 
-// Bottom tabs
-document.querySelectorAll(".tabBtn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    const tab = btn.dataset.tab;
-    ["overview", "trips", "planner"].forEach(t => {
-      el("tab-" + t).classList.toggle("hide", t !== tab);
+document.addEventListener("DOMContentLoaded", () => {
+  // Bottom tabs
+  document.querySelectorAll(".tabBtn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const tab = btn.dataset.tab;
+      ["overview", "trips", "planner"].forEach(t => {
+        el("tab-" + t).classList.toggle("hide", t !== tab);
+      });
     });
   });
-});
 
-document.querySelectorAll(".quickBtn").forEach(btn => {
-  btn.addEventListener("click", () => applyQuickPreset(btn.dataset.preset));
-});
+  document.querySelectorAll(".quickBtn").forEach(btn => {
+    btn.addEventListener("click", () => applyQuickPreset(btn.dataset.preset));
+  });
 
-el("addTripBtn").addEventListener("click", upsertTripFromForm);
-el("cancelEditBtn").addEventListener("click", clearEditMode);
+  el("addTripBtn").addEventListener("click", upsertTripFromForm);
+  el("cancelEditBtn").addEventListener("click", clearEditMode);
 
-el("tripsTbody").addEventListener("click", (e) => {
-  const editIndex = e.target?.dataset?.edit;
-  const delIndex = e.target?.dataset?.del;
+  el("tripsTbody").addEventListener("click", (e) => {
+    const editIndex = e.target?.dataset?.edit;
+    const delIndex = e.target?.dataset?.del;
 
-  if (typeof editIndex !== "undefined") {
-    setEditMode(Number(editIndex));
-    return;
-  }
+    if (typeof editIndex !== "undefined") {
+      setEditMode(Number(editIndex));
+      return;
+    }
 
-  if (typeof delIndex !== "undefined") {
-    deleteTrip(Number(delIndex));
-  }
-});
+    if (typeof delIndex !== "undefined") {
+      deleteTrip(Number(delIndex));
+    }
+  });
 
-el("planEntry").addEventListener("change", render);
-el("detailsBtn").addEventListener("click", openDetails);
-el("detailsCloseBtn").addEventListener("click", closeDetails);
-el("detailsDate").addEventListener("change", renderDetails);
-el("detailsModal").addEventListener("click", (e) => {
-  if (e.target.id === "detailsModal") closeDetails();
-});
+  el("planEntry").addEventListener("change", render);
+  el("detailsBtn").addEventListener("click", openDetails);
+  el("detailsCloseBtn").addEventListener("click", closeDetails);
+  el("detailsDate").addEventListener("change", renderDetails);
+  el("detailsModal").addEventListener("click", (e) => {
+    if (e.target.id === "detailsModal") closeDetails();
+  });
 
-el("resetBtn").addEventListener("click", () => {
-  if (confirm("Reset all trips on this device?")) {
-    trips = [];
-    saveTrips(trips);
-    render();
-    clearEditMode();
-    showToast("All trips reset");
-  }
-});
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDetails();
+  });
 
-el("entryDate").addEventListener("change", syncSelectedUI);
-el("exitDate").addEventListener("change", syncSelectedUI);
+  el("resetBtn").addEventListener("click", () => {
+    if (confirm("Reset all trips on this device?")) {
+      trips = [];
+      saveTrips(trips);
+      render();
+      clearEditMode();
+      showToast("All trips reset");
+    }
+  });
 
-(function init() {
+  el("entryDate").addEventListener("change", syncSelectedUI);
+  el("exitDate").addEventListener("change", syncSelectedUI);
+
   const iso = toISO(new Date());
   el("entryDate").value = iso;
   el("exitDate").value = iso;
   el("planEntry").value = iso;
   el("detailsDate").value = iso;
+  closeModal();
   runSelfChecks();
   syncSelectedUI();
   render();
-})();
+});

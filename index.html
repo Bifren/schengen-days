@@ -175,7 +175,9 @@
     .hide{display:none}
     .error{margin-top:10px; font-size:12px; color: rgba(255,214,211,.95)}
 
-    .modalBackdrop{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; display:flex; align-items:flex-end; justify-content:center; padding:16px;}
+    #detailsModal{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; display:none; align-items:flex-end; justify-content:center; padding:16px;}
+    #detailsModal.open{display:flex;}
+    .modalBackdrop{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; align-items:flex-end; justify-content:center; padding:16px;}
     .modalCard{width:min(760px, 100%); max-height:85vh; overflow:auto; border-radius:22px;}
 
     .tabsBottom{position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(8,12,20,.70); border-top: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);}
@@ -351,7 +353,7 @@
     <div class="subtitle" style="margin-top:16px">Disclaimer: estimates only, not legal advice. Always verify rules for your specific visa/residency.</div>
   </div>
 
-  <div id="detailsModal" class="modalBackdrop hide" role="dialog" aria-modal="true">
+  <div id="detailsModal" class="modalBackdrop" role="dialog" aria-modal="true">
     <div class="card modalCard">
       <div class="row sp" style="margin-bottom:10px">
         <div style="font-weight:900">Calculation details</div>
@@ -414,4 +416,3 @@
   </script>
 </body>
 </html>
-<!-- test deploy -->
