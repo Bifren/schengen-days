@@ -1,10 +1,30 @@
-// ---------- Utilities ----------
+/*
+Manual test checklist:
+1) Status is consistent across badge, hero ring, and progress bar (safe <60, warning 60..89, overstay >=90).
+2) Details modal: closed on load, opens from Details, closes by Close, backdrop click, and Escape.
+3) Modal a11y: focus trapped while open, focus restored to Details button, background inert + no scroll.
+4) Next safe messaging: enter-now / next-safe date / overstay message.
+5) Trip form: invalid/incomplete shows selected "—", swap button appears when exit < entry.
+6) Delete undo works for 5s.
+7) Export/Import JSON works and keeps localStorage key schengen_days_trips_v3.
+*/
+
 const dayMs = 24 * 60 * 60 * 1000;
+const KEY = "schengen_days_trips_v3";
+const ringRadius = 74;
+const ringCircumference = 2 * Math.PI * ringRadius;
+
+let trips = [];
+let editingIndex = null;
+let toastTimer;
+let undoTimer;
+let pendingDeletedTrip = null;
+let lastFocusedEl = null;
+
+const el = (id) => document.getElementById(id);
 
 function toDay(dateStrOrDate) {
-  const d = (dateStrOrDate instanceof Date)
-    ? dateStrOrDate
-    : new Date(dateStrOrDate + "T00:00:00");
+  const d = (dateStrOrDate instanceof Date) ? dateStrOrDate : new Date(dateStrOrDate + "T00:00:00");
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
@@ -34,17 +54,14 @@ function clampTrip(trip) {
   return { entry: (a <= b) ? a : b, exit: (a <= b) ? b : a };
 }
 
-function normalizeTrips(trips) {
-  const prepared = trips.map(clampTrip).sort((a, b) => a.entry - b.entry);
-  if (prepared.length === 0) return [];
-
+function normalizeTrips(list) {
+  const prepared = list.map(clampTrip).sort((a, b) => a.entry - b.entry);
+  if (!prepared.length) return [];
   const merged = [prepared[0]];
   for (let i = 1; i < prepared.length; i++) {
-    const curr = prepared[i];
     const prev = merged[merged.length - 1];
-    const prevPlusOne = addDays(prev.exit, 1);
-
-    if (curr.entry <= prevPlusOne) {
+    const curr = prepared[i];
+    if (curr.entry <= addDays(prev.exit, 1)) {
       if (curr.exit > prev.exit) prev.exit = curr.exit;
     } else {
       merged.push(curr);
@@ -53,73 +70,53 @@ function normalizeTrips(trips) {
   return merged;
 }
 
-function window180(refDate) {
-  const end = toDay(refDate);
-  const start = new Date(end.getTime() - 179 * dayMs);
-  return { start, end };
-}
-
-function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
-  const start = (aStart > bStart) ? aStart : bStart;
-  const end = (aEnd < bEnd) ? aEnd : bEnd;
-  if (start > end) return 0;
-  return daysInclusive(start, end);
-}
-
-function vibrate(ms = 12) {
-  if (navigator.vibrate) navigator.vibrate(ms);
-}
-
-// ---------- Storage ----------
-const KEY = "schengen_days_trips_v3";
-
 function loadTrips() {
   try {
     const raw = localStorage.getItem(KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return normalizeTrips(list);
+    return normalizeTrips(raw ? JSON.parse(raw) : []);
   } catch {
     return [];
   }
 }
 
-function saveTrips(trips) {
-  const normalized = normalizeTrips(trips);
-  const raw = normalized.map(t => ({
-    entry: toISO(t.entry),
-    exit: toISO(t.exit)
-  }));
+function saveTrips(nextTrips) {
+  const normalized = normalizeTrips(nextTrips);
+  const raw = normalized.map(t => ({ entry: toISO(t.entry), exit: toISO(t.exit) }));
   localStorage.setItem(KEY, JSON.stringify(raw));
 }
 
-// ---------- Core calc ----------
-function daysUsedLast180(refDate, trips) {
-  const normalized = normalizeTrips(trips);
+function window180(refDate) {
+  const end = toDay(refDate);
+  return { start: addDays(end, -179), end };
+}
+
+function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
+  const start = aStart > bStart ? aStart : bStart;
+  const end = aEnd < bEnd ? aEnd : bEnd;
+  return start > end ? 0 : daysInclusive(start, end);
+}
+
+function daysUsedLast180(refDate, t = trips) {
   const w = window180(refDate);
-  let sum = 0;
-  for (const t of normalized) {
-    sum += overlapDaysInclusive(w.start, w.end, t.entry, t.exit);
-  }
-  return sum;
+  return normalizeTrips(t).reduce((sum, tr) => sum + overlapDaysInclusive(w.start, w.end, tr.entry, tr.exit), 0);
 }
 
-function remainingLast180(refDate, trips) {
-  return Math.max(0, 90 - daysUsedLast180(refDate, trips));
+function remainingLast180(refDate, t = trips) {
+  return Math.max(0, 90 - daysUsedLast180(refDate, t));
 }
 
-function status(refDate, trips) {
-  const used = daysUsedLast180(refDate, trips);
-  if (used > 90) return "overstay";
-  if (used >= 80) return "warning";
+function getStatus(usedDays) {
+  if (usedDays >= 90) return "overstay";
+  if (usedDays >= 60) return "warning";
   return "safe";
 }
 
-function maxStayDays(entryDate, trips) {
+function maxStayDays(entryDate, t = trips) {
   const entry = toDay(entryDate);
   let days = 0;
   for (; days < 366; days++) {
     const current = addDays(entry, days);
-    const usedExisting = daysUsedLast180(current, trips);
+    const usedExisting = daysUsedLast180(current, t);
     const w = window180(current);
     const extra = overlapDaysInclusive(w.start, w.end, entry, current);
     if (usedExisting + extra > 90) break;
@@ -127,92 +124,83 @@ function maxStayDays(entryDate, trips) {
   return Math.max(0, days - 1);
 }
 
-function latestExit(entryDate, trips) {
-  const maxDays = maxStayDays(entryDate, trips);
-  if (maxDays <= 0) return null;
-  return addDays(entryDate, maxDays - 1);
+function latestExit(entryDate, t = trips) {
+  const maxDays = maxStayDays(entryDate, t);
+  return maxDays <= 0 ? null : addDays(entryDate, maxDays - 1);
 }
 
-function nextSafeEntryDate(startDate, trips) {
+function nextSafeEntryDate(startDate, t = trips) {
   let d = toDay(startDate);
   for (let i = 0; i < 730; i++) {
-    if (remainingLast180(d, trips) > 0) return d;
+    if (remainingLast180(d, t) > 0) return d;
     d = addDays(d, 1);
   }
   return toDay(startDate);
 }
 
-function calculationDetails(refDate, trips) {
+function calculationDetails(refDate, t = trips) {
   const w = window180(refDate);
-  const normalized = normalizeTrips(trips);
-  const rows = [];
-
-  for (const t of normalized) {
-    const inWindow = overlapDaysInclusive(w.start, w.end, t.entry, t.exit);
-    if (inWindow > 0) {
-      rows.push({ entry: t.entry, exit: t.exit, daysInWindow: inWindow });
-    }
-  }
-
+  const rows = normalizeTrips(t)
+    .map(tr => ({ ...tr, daysInWindow: overlapDaysInclusive(w.start, w.end, tr.entry, tr.exit) }))
+    .filter(row => row.daysInWindow > 0);
   const used = rows.reduce((acc, row) => acc + row.daysInWindow, 0);
-  return {
-    windowStart: w.start,
-    windowEnd: w.end,
-    rows,
-    used,
-    remaining: Math.max(0, 90 - used)
-  };
+  return { windowStart: w.start, windowEnd: w.end, rows, used, remaining: Math.max(0, 90 - used) };
 }
 
-// ---------- UI ----------
-let trips = loadTrips();
-let toastTimer;
-let editingIndex = null;
-const el = (id) => document.getElementById(id);
-const ringRadius = 74;
-const ringCircumference = 2 * Math.PI * ringRadius;
+function setStatusStyles(used) {
+  const status = getStatus(used);
+
+  const badge = el("statusBadge");
+  badge.classList.remove("b-ok", "b-warn", "b-bad");
+  if (status === "safe") { badge.classList.add("b-ok"); badge.textContent = "Safe"; }
+  if (status === "warning") { badge.classList.add("b-warn"); badge.textContent = "Warning"; }
+  if (status === "overstay") { badge.classList.add("b-bad"); badge.textContent = "Overstay"; }
+
+  const hero = el("globeRing");
+  hero.classList.remove("status-safe", "status-warning", "status-overstay");
+  hero.classList.add(`status-${status}`);
+
+  const bar = el("progressBar");
+  bar.classList.remove("status-safe", "status-warning", "status-overstay");
+  bar.classList.add(`status-${status}`);
+}
 
 function updateGlobeRing(used, remaining) {
   const progress = Math.max(0, Math.min(1, used / 90));
   const ring = el("globeRingProgress");
   ring.style.strokeDasharray = `${ringCircumference.toFixed(2)} ${ringCircumference.toFixed(2)}`;
   ring.style.strokeDashoffset = (ringCircumference * (1 - progress)).toFixed(2);
-
   el("globeRingUsed").textContent = `Used: ${used} / 90`;
   el("globeRingRemaining").textContent = `Remaining: ${remaining}`;
-
-  const host = el("globeRing");
-  host.classList.remove("state-safe", "state-warning", "state-danger");
-  if (used >= 90) host.classList.add("state-danger");
-  else if (used >= 61) host.classList.add("state-warning");
-  else host.classList.add("state-safe");
-
-  host.setAttribute("aria-label", `Schengen days used: ${used} out of 90, remaining ${remaining}`);
+  el("globeRing").setAttribute("aria-label", `Schengen days used: ${used} out of 90, remaining ${remaining}`);
 }
 
-function showToast(text) {
-  const t = el("toast");
-  t.textContent = text;
-  t.classList.add("show");
+function showToast(text, showUndo = false) {
+  el("toastText").textContent = text;
+  el("toastUndoBtn").classList.toggle("hide", !showUndo);
+  el("toast").classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 1700);
-}
-
-function setBadge(kind) {
-  const b = el("statusBadge");
-  b.classList.remove("b-ok", "b-warn", "b-bad");
-  if (kind === "safe") { b.classList.add("b-ok"); b.textContent = "Safe"; }
-  if (kind === "warning") { b.classList.add("b-warn"); b.textContent = "Warning"; }
-  if (kind === "overstay") { b.classList.add("b-bad"); b.textContent = "Overstay"; }
+  toastTimer = setTimeout(() => {
+    el("toast").classList.remove("show");
+    el("toastUndoBtn").classList.add("hide");
+  }, showUndo ? 5200 : 1700);
 }
 
 function selectedTripDays() {
   const entry = el("entryDate").value;
   const exit = el("exitDate").value;
-  if (!entry || !exit) return { ok: false, days: 0, msg: "Select both dates." };
+  if (!entry || !exit) return { ok: false, days: null, msg: "Select both dates.", invalidOrder: false };
   const a = toDay(entry), b = toDay(exit);
-  if (b < a) return { ok: false, days: 0, msg: "Exit date must be on or after entry date." };
-  return { ok: true, days: daysInclusive(a, b), msg: "" };
+  if (b < a) return { ok: false, days: null, msg: "Exit date must be on or after entry date.", invalidOrder: true };
+  return { ok: true, days: daysInclusive(a, b), msg: "", invalidOrder: false };
+}
+
+function syncSelectedUI() {
+  const info = selectedTripDays();
+  el("selectedDays").textContent = info.days === null ? "—" : String(info.days);
+  el("addTripBtn").disabled = !info.ok;
+  el("error").textContent = info.ok ? "" : info.msg;
+  el("swapDatesBtn").classList.toggle("hide", !info.invalidOrder);
 }
 
 function setEditMode(index) {
@@ -234,13 +222,6 @@ function clearEditMode() {
   syncSelectedUI();
 }
 
-function syncSelectedUI() {
-  const info = selectedTripDays();
-  el("selectedDays").textContent = String(Math.max(1, info.days || 1));
-  el("addTripBtn").disabled = !info.ok;
-  el("error").textContent = info.ok ? "" : info.msg;
-}
-
 function applyQuickPreset(kind) {
   const now = new Date();
   let entry = toDay(el("entryDate").value || now);
@@ -256,47 +237,51 @@ function applyQuickPreset(kind) {
     exit = addDays(entry, 1);
   } else {
     const extraDays = Number(kind);
-    if (Number.isFinite(extraDays) && extraDays > 0) {
-      entry = toDay(el("entryDate").value || now);
-      exit = addDays(entry, extraDays - 1);
-    }
+    if (Number.isFinite(extraDays) && extraDays > 0) exit = addDays(entry, extraDays - 1);
   }
 
   el("entryDate").value = toISO(entry);
   el("exitDate").value = toISO(exit);
   syncSelectedUI();
-  vibrate(8);
 }
 
-function renderDetails() {
-  const refDate = el("detailsDate").value ? toDay(el("detailsDate").value) : toDay(new Date());
-  const details = calculationDetails(refDate, trips);
-
-  el("detailsWindow").textContent = `${fmt(details.windowStart)} → ${fmt(details.windowEnd)}`;
-  el("detailsUsed").textContent = String(details.used);
-  el("detailsRemaining").textContent = String(details.remaining);
-
-  const tbody = el("detailsTbody");
-  tbody.innerHTML = "";
-  for (const row of details.rows) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${fmt(row.entry)} → ${fmt(row.exit)}</td>
-      <td class="right">${row.daysInWindow}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  el("detailsEmpty").classList.toggle("hide", details.rows.length > 0);
-  el("detailsTableWrap").classList.toggle("hide", details.rows.length === 0);
+function swapDates() {
+  const entry = el("entryDate").value;
+  const exit = el("exitDate").value;
+  if (!entry || !exit) return;
+  el("entryDate").value = exit;
+  el("exitDate").value = entry;
+  syncSelectedUI();
 }
 
 function openModal() {
-  el("detailsModal").classList.add("open");
+  const modal = el("detailsModal");
+  lastFocusedEl = document.activeElement;
+  modal.classList.add("open");
+  document.body.classList.add("no-scroll");
+  el("appWrap").setAttribute("inert", "");
+  el("detailsCloseBtn").focus();
 }
 
 function closeModal() {
-  el("detailsModal").classList.remove("open");
+  const modal = el("detailsModal");
+  modal.classList.remove("open");
+  document.body.classList.remove("no-scroll");
+  el("appWrap").removeAttribute("inert");
+  (lastFocusedEl || el("detailsBtn")).focus?.();
+}
+
+function trapModalFocus(e) {
+  if (e.key !== "Tab") return;
+  const modal = el("detailsModal");
+  if (!modal.classList.contains("open")) return;
+  const focusable = [...modal.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')]
+    .filter(node => !node.disabled && node.offsetParent !== null);
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
 }
 
 function openDetails() {
@@ -305,32 +290,73 @@ function openDetails() {
   openModal();
 }
 
-function closeDetails() {
-  closeModal();
+function closeDetails() { closeModal(); }
+
+function renderDetails() {
+  const refDate = el("detailsDate").value ? toDay(el("detailsDate").value) : toDay(new Date());
+  const details = calculationDetails(refDate);
+  el("detailsWindow").textContent = `${fmt(details.windowStart)} → ${fmt(details.windowEnd)}`;
+  el("detailsUsed").textContent = String(details.used);
+  el("detailsRemaining").textContent = String(details.remaining);
+
+  const tbody = el("detailsTbody");
+  tbody.innerHTML = "";
+  for (const row of details.rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${fmt(row.entry)} → ${fmt(row.exit)}</td><td class="right">${row.daysInWindow}</td>`;
+    tbody.appendChild(tr);
+  }
+  el("detailsEmpty").classList.toggle("hide", details.rows.length > 0);
+  el("detailsTableWrap").classList.toggle("hide", details.rows.length === 0);
+}
+
+function updateNextSafe(used, rem, now) {
+  const msg = el("nextSafeMessage");
+  const block = el("nextSafeBlock");
+  const statusLine = el("nextSafeStatusLine");
+
+  if (used > 90) {
+    const overBy = used - 90;
+    const date = nextSafeEntryDate(now, trips);
+    msg.textContent = `Overstay by ${overBy} day(s).`;
+    block.classList.remove("hide");
+    statusLine.textContent = "Earliest compliant date:";
+    statusLine.className = "nextSafeDanger";
+    el("nextSafe").textContent = fmt(date);
+    return;
+  }
+
+  if (rem > 0) {
+    msg.textContent = "You can enter now.";
+    block.classList.add("hide");
+    return;
+  }
+
+  const nextDate = nextSafeEntryDate(now, trips);
+  msg.textContent = "No days left right now.";
+  block.classList.remove("hide");
+  statusLine.textContent = "Next safe entry date:";
+  statusLine.className = "nextSafeWarning";
+  el("nextSafe").textContent = fmt(nextDate);
 }
 
 function render() {
   trips = normalizeTrips(trips);
   const now = new Date();
-  const used = daysUsedLast180(now, trips);
-  const rem = remainingLast180(now, trips);
+  const used = daysUsedLast180(now);
+  const rem = remainingLast180(now);
 
   el("used").textContent = String(used);
   el("remaining").textContent = String(rem);
   el("asOf").textContent = fmt(now);
   el("usedOf90").textContent = String(Math.min(90, used));
+
   updateGlobeRing(used, rem);
+  setStatusStyles(used);
+  updateNextSafe(used, rem, now);
 
   const p = Math.max(0, Math.min(100, (used / 90) * 100));
-  const bar = el("progressBar");
-  bar.style.width = p.toFixed(1) + "%";
-  if (used >= 90) bar.style.background = "var(--bad)";
-  else if (used >= 80) bar.style.background = "var(--warn)";
-  else bar.style.background = "var(--ok)";
-
-  setBadge(status(now, trips));
-  const nextSafe = (rem > 0) ? now : nextSafeEntryDate(now, trips);
-  el("nextSafe").textContent = fmt(nextSafe);
+  el("progressBar").style.width = p.toFixed(1) + "%";
 
   el("tripCount").textContent = String(trips.length);
   el("tripsEmpty").classList.toggle("hide", trips.length !== 0);
@@ -342,13 +368,12 @@ function render() {
     const t = trips[idx];
     const d = daysInclusive(t.entry, t.exit);
     const tr = document.createElement("tr");
-    tr.dataset.edit = String(idx);
     tr.innerHTML = `
       <td>${fmt(t.entry)} → ${fmt(t.exit)}</td>
       <td class="right">${d}</td>
       <td class="right">
-        <button class="secondary" data-edit="${idx}">Edit</button>
-        <button class="danger" data-del="${idx}">Delete</button>
+        <button class="secondary" data-edit="${idx}" aria-label="Edit trip ${fmt(t.entry)} to ${fmt(t.exit)}">Edit</button>
+        <button class="danger" data-del="${idx}" aria-label="Delete trip ${fmt(t.entry)} to ${fmt(t.exit)}">Delete</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -356,12 +381,9 @@ function render() {
 
   const planEntry = el("planEntry").value;
   if (planEntry) {
-    const m = maxStayDays(planEntry, trips);
-    const le = latestExit(planEntry, trips);
-    const ns = nextSafeEntryDate(planEntry, trips);
-    el("planMaxStay").textContent = String(m);
-    el("planLatestExit").textContent = fmt(le);
-    el("planNextSafe").textContent = fmt(ns);
+    el("planMaxStay").textContent = String(maxStayDays(planEntry));
+    el("planLatestExit").textContent = fmt(latestExit(planEntry));
+    el("planNextSafe").textContent = fmt(nextSafeEntryDate(planEntry));
   } else {
     el("planMaxStay").textContent = "0";
     el("planLatestExit").textContent = "—";
@@ -371,118 +393,159 @@ function render() {
 
 function upsertTripFromForm() {
   const info = selectedTripDays();
-  if (!info.ok) { syncSelectedUI(); return; }
-
-  const newTrip = clampTrip({ entry: el("entryDate").value, exit: el("exitDate").value });
+  if (!info.ok) return syncSelectedUI();
+  const trip = clampTrip({ entry: el("entryDate").value, exit: el("exitDate").value });
 
   if (editingIndex === null) {
-    trips.push(newTrip);
+    trips.push(trip);
     showToast(`Trip added • ${info.days} day(s)`);
   } else {
-    trips[editingIndex] = newTrip;
+    trips[editingIndex] = trip;
     showToast("Trip updated");
   }
 
-  trips = normalizeTrips(trips);
   saveTrips(trips);
   render();
   clearEditMode();
-  vibrate(16);
 }
 
 function deleteTrip(index) {
+  pendingDeletedTrip = { trip: trips[index], index };
   trips.splice(index, 1);
-  trips = normalizeTrips(trips);
   saveTrips(trips);
   render();
-  if (editingIndex !== null && editingIndex === index) clearEditMode();
-  showToast("Trip deleted");
-  vibrate(10);
+  showToast("Trip deleted", true);
+
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    pendingDeletedTrip = null;
+    el("toastUndoBtn").classList.add("hide");
+  }, 5000);
+}
+
+function undoDelete() {
+  if (!pendingDeletedTrip) return;
+  trips.splice(Math.min(pendingDeletedTrip.index, trips.length), 0, pendingDeletedTrip.trip);
+  pendingDeletedTrip = null;
+  clearTimeout(undoTimer);
+  saveTrips(trips);
+  render();
+  showToast("Trip restored");
+}
+
+function exportTrips() {
+  const payload = normalizeTrips(trips).map(t => ({ entry: toISO(t.entry), exit: toISO(t.exit) }));
+  const text = JSON.stringify(payload, null, 2);
+  if (navigator.share) {
+    navigator.share({ title: "Schengen trips", text }).catch(() => {});
+    return;
+  }
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "schengen-trips.json";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importTripsFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result));
+      if (!Array.isArray(parsed)) throw new Error("JSON must be an array.");
+      parsed.forEach(item => {
+        if (!item || typeof item.entry !== "string" || typeof item.exit !== "string") throw new Error("Invalid trip schema.");
+      });
+      if (trips.length && !confirm("Overwrite existing trips with imported JSON?")) return;
+      trips = normalizeTrips(parsed);
+      saveTrips(trips);
+      render();
+      clearEditMode();
+      showToast("Trips imported");
+    } catch (err) {
+      alert(`Import failed: ${err.message}`);
+    }
+  };
+  reader.readAsText(file);
 }
 
 function runSelfChecks() {
-  const mergedOverlap = normalizeTrips([
-    { entry: "2026-01-01", exit: "2026-01-05" },
-    { entry: "2026-01-04", exit: "2026-01-10" }
-  ]);
-  console.assert(mergedOverlap.length === 1 && toISO(mergedOverlap[0].entry) === "2026-01-01" && toISO(mergedOverlap[0].exit) === "2026-01-10", "overlap merge failed");
-
-  const mergedAdjacent = normalizeTrips([
-    { entry: "2026-02-01", exit: "2026-02-05" },
-    { entry: "2026-02-06", exit: "2026-02-10" }
-  ]);
+  const mergedOverlap = normalizeTrips([{ entry: "2026-01-01", exit: "2026-01-05" }, { entry: "2026-01-04", exit: "2026-01-10" }]);
+  console.assert(mergedOverlap.length === 1 && toISO(mergedOverlap[0].exit) === "2026-01-10", "overlap merge failed");
+  const mergedAdjacent = normalizeTrips([{ entry: "2026-02-01", exit: "2026-02-05" }, { entry: "2026-02-06", exit: "2026-02-10" }]);
   console.assert(mergedAdjacent.length === 1 && toISO(mergedAdjacent[0].exit) === "2026-02-10", "adjacent merge failed");
-
   const futureTrip = [{ entry: addDays(new Date(), 20), exit: addDays(new Date(), 30) }];
   console.assert(daysUsedLast180(new Date(), futureTrip) === 0, "future-only trip should not affect today");
-
   console.assert(daysInclusive("2026-03-01", "2026-03-01") === 1, "inclusive counting failed");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Bottom tabs
+  trips = loadTrips();
+
   document.querySelectorAll(".tabBtn").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       const tab = btn.dataset.tab;
-      ["overview", "trips", "planner"].forEach(t => {
-        el("tab-" + t).classList.toggle("hide", t !== tab);
-      });
+      ["overview", "trips", "planner"].forEach(t => el("tab-" + t).classList.toggle("hide", t !== tab));
     });
   });
 
-  document.querySelectorAll(".quickBtn").forEach(btn => {
-    btn.addEventListener("click", () => applyQuickPreset(btn.dataset.preset));
-  });
+  document.querySelectorAll(".quickBtn").forEach(btn => btn.addEventListener("click", () => applyQuickPreset(btn.dataset.preset)));
 
   el("addTripBtn").addEventListener("click", upsertTripFromForm);
   el("cancelEditBtn").addEventListener("click", clearEditMode);
+  el("swapDatesBtn").addEventListener("click", swapDates);
+  el("planEntry").addEventListener("change", render);
+
+  el("detailsBtn").addEventListener("click", openDetails);
+  el("detailsCloseBtn").addEventListener("click", closeDetails);
+  el("detailsDate").addEventListener("change", renderDetails);
+  el("detailsModal").addEventListener("click", (e) => { if (e.target.id === "detailsModal") closeDetails(); });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeDetails();
+    trapModalFocus(e);
+  });
 
   el("tripsTbody").addEventListener("click", (e) => {
     const editIndex = e.target?.dataset?.edit;
     const delIndex = e.target?.dataset?.del;
-
-    if (typeof editIndex !== "undefined") {
-      setEditMode(Number(editIndex));
-      return;
-    }
-
-    if (typeof delIndex !== "undefined") {
-      deleteTrip(Number(delIndex));
-    }
-  });
-
-  el("planEntry").addEventListener("change", render);
-  el("detailsBtn").addEventListener("click", openDetails);
-  el("detailsCloseBtn").addEventListener("click", closeDetails);
-  el("detailsDate").addEventListener("change", renderDetails);
-  el("detailsModal").addEventListener("click", (e) => {
-    if (e.target.id === "detailsModal") closeDetails();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeDetails();
+    if (typeof editIndex !== "undefined") return setEditMode(Number(editIndex));
+    if (typeof delIndex !== "undefined") deleteTrip(Number(delIndex));
   });
 
   el("resetBtn").addEventListener("click", () => {
-    if (confirm("Reset all trips on this device?")) {
-      trips = [];
-      saveTrips(trips);
-      render();
-      clearEditMode();
-      showToast("All trips reset");
-    }
+    if (!confirm("Reset all trips on this device?")) return;
+    trips = [];
+    saveTrips(trips);
+    clearEditMode();
+    render();
+    showToast("All trips reset");
   });
 
   el("entryDate").addEventListener("change", syncSelectedUI);
   el("exitDate").addEventListener("change", syncSelectedUI);
+
+  el("toastUndoBtn").addEventListener("click", undoDelete);
+
+  el("exportTripsBtn").addEventListener("click", exportTrips);
+  el("importTripsBtn").addEventListener("click", () => el("importTripsInput").click());
+  el("importTripsInput").addEventListener("change", (e) => {
+    const file = e.target.files?.[0];
+    if (file) importTripsFromFile(file);
+    e.target.value = "";
+  });
 
   const iso = toISO(new Date());
   el("entryDate").value = iso;
   el("exitDate").value = iso;
   el("planEntry").value = iso;
   el("detailsDate").value = iso;
+
   closeModal();
   runSelfChecks();
   syncSelectedUI();

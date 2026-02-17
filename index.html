@@ -41,6 +41,7 @@
       text-rendering: optimizeLegibility;
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
     }
+    body.no-scroll{overflow:hidden}
 
     .wrap{max-width: 960px; margin: 0 auto; padding: 14px 16px 108px;}
     .topbar{
@@ -101,71 +102,28 @@
 
     .big{ font-size:36px; font-weight:900; letter-spacing:-.04em; }
     .progress{width:100%; height: 10px; border-radius: 999px; border: 1px solid var(--stroke); background: rgba(255,255,255,.05); overflow:hidden; margin-top:10px;}
-    .bar{height:100%; width: 0%; background: var(--ok); border-radius: 999px; transition: width .25s ease;}
+    .bar{height:100%; width: 0%; border-radius: 999px; transition: width .25s ease, background .25s ease;}
+    .status-safe{background: color-mix(in oklab, var(--ok) 45%, white 15%)}
+    .status-warning{background: color-mix(in oklab, var(--warn) 45%, white 15%)}
+    .status-overstay{background: color-mix(in oklab, var(--bad) 45%, white 15%)}
 
-    .heroIndicator{
-      grid-column: 1 / -1;
-      display: grid;
-      place-items: center;
-      gap: 12px;
-      padding: 24px 16px;
-      background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05));
-      box-shadow: 0 12px 28px rgba(0,0,0,.20);
-    }
-    .globeRingWrap{
-      position: relative;
-      width: 186px;
-      height: 186px;
-      display:grid;
-      place-items:center;
-    }
-    .ringSvg{
-      position:absolute;
-      inset:0;
-      transform: rotate(-90deg);
-    }
-    .ringTrack{
-      fill:none;
-      stroke: rgba(255,255,255,.16);
-      stroke-width: 9;
-    }
-    .ringProgress{
-      fill:none;
-      stroke: rgba(145, 178, 214, .78);
-      stroke-width: 9;
-      stroke-linecap: round;
-      transition: stroke-dashoffset .40s cubic-bezier(.16,1,.3,1), stroke .40s cubic-bezier(.16,1,.3,1);
-    }
-    .globeSvg{
-      width: 118px;
-      height: 118px;
-      color: rgba(235,242,255,.88);
-      filter: drop-shadow(0 5px 16px rgba(0,0,0,.22));
-    }
-    .heroMeta{
-      text-align:center;
-      display:grid;
-      gap:4px;
-    }
-    .heroUsed{
-      font-size: 30px;
-      font-weight: 600;
-      letter-spacing: -.025em;
-    }
-    .heroRemaining{
-      font-size: 15px;
-      color: rgba(255,255,255,.74);
-      font-weight: 500;
-    }
-    .heroSub{
-      font-size: 12px;
-      color: rgba(255,255,255,.52);
-      font-weight: 500;
-    }
+    .heroIndicator{grid-column: 1 / -1; display: grid; place-items: center; gap: 12px; padding: 24px 16px; background: linear-gradient(180deg, rgba(255,255,255,.11), rgba(255,255,255,.05)); box-shadow: 0 12px 28px rgba(0,0,0,.20);}
+    .globeRingWrap{position: relative; width: 186px; height: 186px; display:grid; place-items:center;}
+    .ringSvg{position:absolute; inset:0; transform: rotate(-90deg);}
+    .ringTrack{fill:none; stroke: rgba(255,255,255,.16); stroke-width: 9;}
+    .ringProgress{fill:none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset .40s cubic-bezier(.16,1,.3,1), stroke .40s cubic-bezier(.16,1,.3,1);}
+    .globeSvg{width: 118px; height: 118px; color: rgba(235,242,255,.88); filter: drop-shadow(0 5px 16px rgba(0,0,0,.22));}
+    .heroMeta{text-align:center; display:grid; gap:4px;}
+    .heroUsed{font-size: 30px; font-weight: 600; letter-spacing: -.025em;}
+    .heroRemaining{font-size: 15px; color: rgba(255,255,255,.74); font-weight: 500;}
+    .heroSub{font-size: 12px; color: rgba(255,255,255,.52); font-weight: 500;}
+    .heroIndicator.status-safe .ringProgress{ stroke: rgba(145,186,220,.80); }
+    .heroIndicator.status-warning .ringProgress{ stroke: rgba(196,174,145,.82); }
+    .heroIndicator.status-overstay .ringProgress{ stroke: rgba(190,150,150,.82); }
 
-    .heroIndicator.state-safe .ringProgress{ stroke: rgba(145,186,220,.80); }
-    .heroIndicator.state-warning .ringProgress{ stroke: rgba(196,174,145,.82); }
-    .heroIndicator.state-danger .ringProgress{ stroke: rgba(190,150,150,.82); }
+    .nextSafeBox{margin-top:10px; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:rgba(255,255,255,.04)}
+    .nextSafeWarning{color:rgba(255,255,255,.86); font-weight:700}
+    .nextSafeDanger{color:rgba(255,220,220,.94); font-weight:700}
 
     table{width:100%; border-collapse:collapse}
     th,td{padding:12px 8px; border-bottom:1px solid var(--stroke); text-align:left}
@@ -175,9 +133,8 @@
     .hide{display:none}
     .error{margin-top:10px; font-size:12px; color: rgba(255,214,211,.95)}
 
-    #detailsModal{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; display:none; align-items:flex-end; justify-content:center; padding:16px;}
+    #detailsModal{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; display:none; align-items:flex-end; justify-content:center; padding:16px 16px calc(16px + env(safe-area-inset-bottom));}
     #detailsModal.open{display:flex;}
-    .modalBackdrop{position:fixed; inset:0; background: rgba(0,0,0,.55); backdrop-filter: blur(8px); z-index: 20; align-items:flex-end; justify-content:center; padding:16px;}
     .modalCard{width:min(760px, 100%); max-height:85vh; overflow:auto; border-radius:22px;}
 
     .tabsBottom{position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: rgba(8,12,20,.70); border-top: 1px solid rgba(255,255,255,.10); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);}
@@ -189,15 +146,16 @@
 
     .chip{display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 999px; border: 1px solid var(--stroke); background: rgba(255,255,255,.05); color: rgba(255,255,255,.78); font-size: 12px; font-weight: 800;}
 
-    .toast{position:fixed; left:50%; transform:translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 9; background: rgba(255,255,255,.13); color: var(--text); border:1px solid var(--stroke); border-radius: 14px; padding: 10px 14px; font-size:13px; font-weight:700; backdrop-filter: blur(14px); opacity:0; pointer-events:none; transition: opacity .25s var(--ease), transform .25s var(--ease);}
-    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); }
+    .toast{position:fixed; left:50%; transform:translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 30; background: rgba(255,255,255,.13); color: var(--text); border:1px solid var(--stroke); border-radius: 14px; padding: 10px 14px; font-size:13px; font-weight:700; backdrop-filter: blur(14px); opacity:0; pointer-events:none; transition: opacity .25s var(--ease), transform .25s var(--ease); display:flex; align-items:center; gap:12px;}
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(-4px); pointer-events:auto; }
+    .toastAction{background:transparent; box-shadow:none; border:1px solid rgba(255,255,255,.2); padding:6px 10px; border-radius:10px; font-size:12px}
 
     @media (prefers-reduced-motion: reduce){ *, *::before, *::after{ animation:none !important; transition:none !important; } }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
+  <div id="appWrap" class="wrap">
     <div class="topbar">
       <div>
         <h1 class="title">Schengen Days</h1>
@@ -207,7 +165,7 @@
     </div>
 
     <section id="tab-overview" class="grid cols2">
-      <div id="globeRing" class="card heroIndicator state-safe" data-testid="globe-ring" aria-label="Schengen days used: 0 out of 90, remaining 90">
+      <div id="globeRing" class="card heroIndicator status-safe" data-testid="globe-ring" aria-label="Schengen days used: 0 out of 90, remaining 90">
         <div class="globeRingWrap">
           <svg class="ringSvg" viewBox="0 0 186 186" aria-hidden="true">
             <circle class="ringTrack" cx="93" cy="93" r="74"></circle>
@@ -243,7 +201,7 @@
           </div>
         </div>
 
-        <div class="progress" aria-label="usage progress"><div id="progressBar" class="bar"></div></div>
+        <div class="progress" aria-label="usage progress"><div id="progressBar" class="bar status-safe"></div></div>
 
         <div class="row sp" style="margin-top:10px">
           <span class="chip">As of: <span id="asOf"></span></span>
@@ -257,9 +215,12 @@
       <div class="card">
         <div class="row sp">
           <div>
-            <div class="mut">Next safe entry date</div>
-            <div id="nextSafe" style="font-size:18px;font-weight:900">—</div>
-            <div class="subtitle" style="margin-top:8px">Shown when you have 0 days left.</div>
+            <div class="mut">Entry recommendation</div>
+            <div id="nextSafeMessage" style="font-size:18px;font-weight:900">You can enter now.</div>
+            <div id="nextSafeBlock" class="nextSafeBox hide">
+              <div id="nextSafeStatusLine" class="nextSafeWarning">Next safe entry date:</div>
+              <div id="nextSafe" style="font-size:18px;font-weight:900">—</div>
+            </div>
           </div>
           <button class="secondary" id="resetBtn">Reset</button>
         </div>
@@ -287,12 +248,14 @@
             <button class="quickBtn" data-preset="14">+14 days</button>
           </div>
         </div>
+        <div class="subtitle">+7 and +14 are calculated from Entry date.</div>
 
         <div class="row sp" style="margin-top:12px">
-          <div class="chip">Selected: <span id="selectedDays">1</span> day(s)</div>
+          <div class="chip">Selected: <span id="selectedDays">—</span></div>
           <div class="row">
-            <button id="cancelEditBtn" class="secondary hide">Cancel</button>
-            <button id="addTripBtn">Add trip</button>
+            <button id="swapDatesBtn" class="secondary hide" type="button">Swap dates</button>
+            <button id="cancelEditBtn" class="secondary hide" type="button">Cancel</button>
+            <button id="addTripBtn" type="button">Add trip</button>
           </div>
         </div>
 
@@ -304,7 +267,12 @@
     <section id="tab-trips" class="card hide">
       <div class="row sp" style="margin-bottom:10px">
         <div style="font-weight:900">Trips (normalized intervals)</div>
-        <span class="chip"><span id="tripCount">0</span> interval(s)</span>
+        <div class="row">
+          <button id="exportTripsBtn" class="secondary" type="button">Export JSON</button>
+          <button id="importTripsBtn" class="secondary" type="button">Import JSON</button>
+          <input id="importTripsInput" type="file" accept="application/json" class="hide" />
+          <span class="chip"><span id="tripCount">0</span> interval(s)</span>
+        </div>
       </div>
 
       <div id="tripsEmpty" class="mut">No trips yet. Add one in Overview.</div>
@@ -353,11 +321,11 @@
     <div class="subtitle" style="margin-top:16px">Disclaimer: estimates only, not legal advice. Always verify rules for your specific visa/residency.</div>
   </div>
 
-  <div id="detailsModal" class="modalBackdrop" role="dialog" aria-modal="true">
-    <div class="card modalCard">
+  <div id="detailsModal" role="dialog" aria-modal="true" aria-labelledby="detailsTitle">
+    <div class="card modalCard" tabindex="-1">
       <div class="row sp" style="margin-bottom:10px">
-        <div style="font-weight:900">Calculation details</div>
-        <button class="secondary" id="detailsCloseBtn">Close</button>
+        <div id="detailsTitle" style="font-weight:900">Calculation details</div>
+        <button class="secondary" id="detailsCloseBtn" type="button">Close</button>
       </div>
 
       <div class="grid cols2">
@@ -391,19 +359,22 @@
     </div>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toastText"></span>
+    <button id="toastUndoBtn" class="toastAction hide" type="button">Undo</button>
+  </div>
 
   <nav class="tabsBottom" aria-label="Bottom tabs">
     <div class="tabsInner">
-      <button class="tabBtn active" data-tab="overview" aria-label="Overview">
+      <button class="tabBtn active" data-tab="overview" aria-label="Overview" type="button">
         <svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M4 12a8 8 0 1 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 12l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 12h16" stroke="currentColor" stroke-width="2" opacity=".35"/></svg>
         <div class="tabLabel">Overview</div>
       </button>
-      <button class="tabBtn" data-tab="trips" aria-label="Trips">
+      <button class="tabBtn" data-tab="trips" aria-label="Trips" type="button">
         <svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M7 3v3M17 3v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M5 7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/><path d="M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/></svg>
         <div class="tabLabel">Trips</div>
       </button>
-      <button class="tabBtn" data-tab="planner" aria-label="Planner">
+      <button class="tabBtn" data-tab="planner" aria-label="Planner" type="button">
         <svg class="ico" viewBox="0 0 24 24" fill="none"><path d="M12 8v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 22a10 10 0 1 0-10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".35"/></svg>
         <div class="tabLabel">Planner</div>
       </button>
@@ -412,7 +383,9 @@
 
   <script src="app.js"></script>
   <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
