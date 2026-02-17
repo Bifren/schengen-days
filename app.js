@@ -172,23 +172,22 @@ function setHero() {
   hero.classList.remove("safe", "warning", "danger", "critical");
   hero.classList.add(status);
 
+  el("heroPrimary").textContent = String(remaining);
+  el("heroUnit").textContent = "days left";
+  el("heroSecondary").textContent = "Available under the 90/180 rule";
+  el("heroNotice").textContent = "";
+
   if (used > 90) {
     const overstayDays = used - 90;
     const next = getNextPossibleEntry(todayIndex);
-    el("heroPrimary").textContent = `${remaining} days left`;
-    el("heroSecondary").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
+    el("heroNotice").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
     return;
   }
 
   if (remaining === 0) {
     const next = getNextPossibleEntry(todayIndex);
-    el("heroPrimary").textContent = "0 days left";
-    el("heroSecondary").textContent = `You can’t enter today. Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
-    return;
+    el("heroNotice").textContent = `Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
   }
-
-  el("heroPrimary").textContent = `${remaining} days left`;
-  el("heroSecondary").textContent = `Available under the 90/180 rule. If you enter today, you can stay up to ${remaining} days.`;
 }
 
 function showToast(text, canUndo = false) {

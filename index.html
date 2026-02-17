@@ -28,8 +28,8 @@
       font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,Arial,sans-serif;
       color:var(--text);
       background:
-        radial-gradient(1200px 640px at 10% -20%, rgba(10,132,255,.25), transparent 55%),
-        radial-gradient(1000px 620px at 100% 0%, rgba(48,209,88,.12), transparent 55%),
+        radial-gradient(1200px 640px at 10% -20%, rgba(10,132,255,.18), transparent 58%),
+        radial-gradient(1000px 620px at 100% 0%, rgba(48,209,88,.08), transparent 58%),
         linear-gradient(180deg, var(--bg2) 0%, var(--bg) 100%);
       -webkit-font-smoothing:antialiased;
       padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
@@ -39,10 +39,13 @@
     .subtitle{margin-top:6px;color:var(--mut);font-size:12px}
     .card{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.04));border:1px solid var(--stroke);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);backdrop-filter:blur(16px)}
 
-    .hero{display:grid;gap:8px}
+    .hero{display:grid;gap:6px;justify-items:center;text-align:center;padding:26px 16px;background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.05));position:relative;overflow:hidden}
+    .hero::after{content:"";position:absolute;inset:auto 20% -90px 20%;height:140px;background:radial-gradient(ellipse at center, rgba(10,132,255,.20), transparent 70%);pointer-events:none}
     .heroLabel{font-size:12px;color:var(--mut)}
-    .heroPrimary{font-size:34px;font-weight:800;letter-spacing:-.03em}
-    .heroSecondary{font-size:16px;color:var(--mut)}
+    .heroPrimary{font-size:64px;line-height:.95;font-weight:900;letter-spacing:-.04em}
+    .heroUnit{font-size:18px;font-weight:700;color:rgba(255,255,255,.88)}
+    .heroSecondary{font-size:13px;color:var(--mut)}
+    .heroNotice{font-size:14px;color:rgba(255,255,255,.86)}
     .hero.safe{border-color:rgba(48,209,88,.34)}
     .hero.warning{border-color:rgba(255,159,10,.34)}
     .hero.danger{border-color:rgba(255,69,58,.38)}
@@ -56,6 +59,8 @@
     input:focus{border-color:rgba(10,132,255,.65);box-shadow:0 0 0 3px rgba(10,132,255,.16)}
 
     .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .addTripActions{justify-content:center;margin-top:8px}
+    .saveBtn{width:min(100%,360px);height:50px;border-radius:16px;font-size:16px}
     button{border:none;border-radius:12px;padding:10px 12px;font-weight:700;cursor:pointer;background:linear-gradient(180deg,#2c9bff,#0A84FF);color:#fff}
     button.secondary{background:rgba(255,255,255,.08);border:1px solid var(--stroke);color:var(--text)}
     button.danger{background:rgba(255,69,58,.18);border:1px solid rgba(255,69,58,.35);color:#fff}
@@ -84,8 +89,10 @@
 
     <section id="hero" class="card hero safe" aria-live="polite">
       <div class="heroLabel">Status</div>
-      <div id="heroPrimary" class="heroPrimary">You can stay: 90 days</div>
-      <div id="heroSecondary" class="heroSecondary">in the next 180 days</div>
+      <div id="heroPrimary" class="heroPrimary">90</div>
+      <div id="heroUnit" class="heroUnit">days left</div>
+      <div id="heroSecondary" class="heroSecondary">Available under the 90/180 rule</div>
+      <div id="heroNotice" class="heroNotice"></div>
     </section>
 
     <section class="card">
@@ -107,15 +114,14 @@
         <button class="secondary" type="button" data-quick="14">+14</button>
         <button class="secondary" type="button" data-quick="30">+30</button>
       </div>
-      <div class="subtitle">Quick buttons set exit date from entry.</div>
 
-      <div class="row" style="justify-content:space-between;margin-top:10px">
+      <div class="row" style="justify-content:space-between;margin-top:8px">
         <div class="mut">Trip length: <strong id="tripLength">—</strong></div>
-        <div class="row">
-          <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
-          <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
-          <button id="saveTripBtn" type="button">Save trip</button>
-        </div>
+        <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
+      </div>
+      <div class="row addTripActions">
+        <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
+        <button id="saveTripBtn" type="button" class="saveBtn">Save trip</button>
       </div>
       <div id="tripError" class="error"></div>
     </section>
