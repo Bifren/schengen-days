@@ -68,11 +68,12 @@
       min-height: 44px;
       border-radius: var(--radius-pill);
       border: 1px solid var(--glass-border);
-      background: rgba(255,255,255,.04);
+      background: transparent;
       color: var(--color-text-secondary);
       font-weight: 600;
     }
     .segBtn.active { background: var(--color-accent-soft); color: var(--color-text-primary); border-color: var(--color-accent-primary); }
+    .segBtn:not(.active) { background: transparent; color: var(--color-text-secondary); border-color: var(--glass-border); }
 
     .sectionTitle { margin: 0 0 var(--space-12); font-size: 30px; font-weight: 600; text-align: center; }
     .field { display: grid; gap: var(--space-8); margin-bottom: var(--space-12); }

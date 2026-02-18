@@ -8,6 +8,7 @@ let undoTimer;
 let pendingDeleted = null;
 let viewMode = "summary";
 let whatIfMode = false;
+let previewMode = false;
 let userTouchedExit = false;
 
 const el = (id) => document.getElementById(id);
@@ -412,16 +413,25 @@ function renderTrips() {
 }
 
 function setView(mode) {
-  viewMode = mode;
-  el("viewSummaryBtn").classList.toggle("active", mode === "summary");
-  el("viewTimelineBtn").classList.toggle("active", mode === "timeline");
-  el("timelineCard").classList.toggle("show", mode === "timeline");
+  viewMode = mode === "timeline" ? "timeline" : "summary";
+  const isSummary = viewMode === "summary";
+
+  el("viewSummaryBtn").classList.toggle("active", isSummary);
+  el("viewTimelineBtn").classList.toggle("active", !isSummary);
+  el("viewSummaryBtn").setAttribute("aria-pressed", String(isSummary));
+  el("viewTimelineBtn").setAttribute("aria-pressed", String(!isSummary));
+
+  el("formCard").classList.toggle("hide", !isSummary);
+  el("tripsCard").classList.toggle("hide", !isSummary);
+  el("timelineCard").classList.toggle("show", !isSummary);
 }
 
 function toggleWhatIf() {
-  whatIfMode = !whatIfMode;
-  el("whatIfToggle").classList.toggle("active", whatIfMode);
-  el("whatIfToggle").textContent = whatIfMode ? "Preview on" : "Preview off";
+  previewMode = !previewMode;
+  whatIfMode = previewMode;
+  el("whatIfToggle").classList.toggle("active", previewMode);
+  el("whatIfToggle").setAttribute("aria-pressed", String(previewMode));
+  el("whatIfToggle").textContent = previewMode ? "Preview on" : "Preview off";
   renderWhatIf();
   renderTimeline();
 }
@@ -486,6 +496,7 @@ document.addEventListener("DOMContentLoaded", () => {
   el("undoBtn").addEventListener("click", undoDelete);
 
   runSelfChecks();
+  el("whatIfToggle").setAttribute("aria-pressed", "false");
   setView("summary");
   render();
 });
