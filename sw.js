@@ -1,4 +1,4 @@
-const CACHE = "schengen-days-v6";
+const CACHE = "schengen-days-v7";
 const ASSETS = ["./", "./index.html", "./design-tokens.css", "./app.js", "./manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
