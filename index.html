@@ -97,11 +97,44 @@
     .timelineHead { margin: 0 0 var(--space-8); font-size: 18px; }
     .timelineRange { margin: 0 0 4px; color: var(--color-text-secondary); font-size: 13px; }
     .timelineUsage { margin: 0 0 var(--space-8); color: var(--color-text-primary); font-size: 14px; }
-    .timelineGrid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; }
-    .dayCell { height: 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
-    .dayCell.used { background: var(--color-accent-primary); }
-    .dayCell.today { outline: 1px solid #fff; outline-offset: 1px; }
-    .timelineHint { margin: var(--space-8) 0 0; color: var(--color-text-secondary); font-size: 12px; display: flex; justify-content: space-between; }
+     .timelineStripWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2px; }
+    .timelineStrip { display: grid; grid-auto-flow: column; grid-auto-columns: 26px; gap: 4px; min-width: max-content; }
+    .dayCell {
+      position: relative;
+      height: 42px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.04);
+      color: var(--color-text-secondary);
+      font-size: 11px;
+      display: grid;
+      align-content: end;
+      justify-items: center;
+      padding-bottom: 4px;
+      user-select: none;
+    }
+    .dayCell.used { background: rgba(79,123,255,.26); border-color: rgba(79,123,255,.65); color: #fff; }
+    .dayCell.today { outline: 2px solid #fff; outline-offset: 0; }
+    .monthTag {
+      position: absolute;
+      top: -16px;
+      left: 0;
+      font-size: 10px;
+      color: var(--color-text-secondary);
+      white-space: nowrap;
+    }
+    .timelineTooltip {
+      position: fixed;
+      z-index: 45;
+      pointer-events: none;
+      background: rgba(12,18,42,.95);
+      border: 1px solid var(--glass-border);
+      color: #fff;
+      border-radius: 8px;
+      padding: 6px 8px;
+      font-size: 12px;
+      transform: translate(-50%, -125%);
+    }
 
     .emptyState { text-align: center; padding: var(--space-16) 0; }
     .emptyTitle { margin: 0 0 var(--space-8); font-size: 18px; }
@@ -287,8 +320,8 @@
       </div>
       <p id="timelineRange" class="timelineRange"></p>
       <p id="timelineUsage" class="timelineUsage"></p>
-      <div id="timelineGrid" class="timelineGrid"></div>
-      <p class="timelineHint"><span>← 180 days ago</span><span>Today →</span></p>
+      <div class="timelineStripWrap"><div id="timelineGrid" class="timelineStrip" role="list"></div></div>
+      <div id="timelineTooltip" class="timelineTooltip hide" role="status" aria-live="polite"></div>
       </section>
 
       <button id="openAddTripBtn" type="button" class="primaryBtn">+ Add trip</button>

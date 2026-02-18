@@ -211,20 +211,22 @@ function renderTimeline() {
   const empty = el("timelineEmpty");
   const range = el("timelineRange");
   const usage = el("timelineUsage");
+  const tooltip = el("timelineTooltip");
   grid.innerHTML = "";
 
   if (!trips.length) {
     empty.classList.remove("hide");
     range.classList.add("hide");
     usage.classList.add("hide");
-    grid.classList.add("hide");
+    grid.parentElement.classList.add("hide");
+    if (tooltip) tooltip.classList.add("hide");
     return;
   }
 
   empty.classList.add("hide");
   range.classList.remove("hide");
   usage.classList.remove("hide");
-  grid.classList.remove("hide");
+  grid.parentElement.classList.remove("hide");
 
   const today = Math.floor(Date.now() / DAY_MS);
   const start = today - 179;
@@ -242,8 +244,26 @@ function renderTimeline() {
   for (let d = start; d <= today; d++) {
     const cell = document.createElement("div");
     cell.className = "dayCell";
+    cell.setAttribute("role", "listitem");
+    cell.dataset.dayIndex = String(d);
+
+    const ymd = fromDayIndex(d);
+    const date = new Date(d * DAY_MS);
+    const dayNum = String(date.getUTCDate());
+
+    cell.textContent = dayNum;
     if (usedSet.has(d)) cell.classList.add("used");
     if (d === today) cell.classList.add("today");
+
+    if (date.getUTCDate() === 1 || d === start) {
+      const monthTag = document.createElement("span");
+      monthTag.className = "monthTag";
+      monthTag.textContent = date.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
+      cell.appendChild(monthTag);
+    }
+
+    const statusText = usedSet.has(d) ? "In Schengen" : "Outside";
+    cell.dataset.tip = `${fmtYMD(ymd)} — ${statusText}`;
     grid.appendChild(cell);
   }
 
@@ -251,6 +271,33 @@ function renderTimeline() {
   const remaining = computeRemaining(today, trips);
   range.textContent = `${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))}`;
   usage.textContent = `${used} of 90 days used • ${remaining} remaining`;
+}
+
+function bindTimelineTooltip() {
+  const grid = el("timelineGrid");
+  const tip = el("timelineTooltip");
+  if (!grid || !tip) return;
+
+  const showTip = (target, x, y) => {
+    const cell = target.closest(".dayCell");
+    if (!cell || !cell.dataset.tip) return;
+    tip.textContent = cell.dataset.tip;
+    tip.style.left = `${x}px`;
+    tip.style.top = `${y}px`;
+    tip.classList.remove("hide");
+  };
+
+  const hideTip = () => tip.classList.add("hide");
+
+  grid.addEventListener("mousemove", (e) => showTip(e.target, e.clientX, e.clientY));
+  grid.addEventListener("mouseleave", hideTip);
+  grid.addEventListener("click", (e) => {
+    const cell = e.target.closest(".dayCell");
+    if (!cell) return hideTip();
+    const r = cell.getBoundingClientRect();
+    showTip(cell, r.left + r.width / 2, r.top);
+    setTimeout(hideTip, 1400);
+  });
 }
 
 function showToast(text, canUndo = false) {
@@ -486,6 +533,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   runSelfChecks();
+  bindTimelineTooltip();
   setTab("status");
   render();
 });
