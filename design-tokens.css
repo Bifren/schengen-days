@@ -1,0 +1,23 @@
+:root {
+  /* Colors */
+  --color-card: #151C3F;
+  --color-accent-primary: #4F7BFF;
+  --color-accent-soft: #2F4FA8;
+  --color-bg-primary: #0E1430;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A8B2D1;
+
+  /* Radius */
+  --radius-card: 20px;
+  --radius-button: 16px;
+  --radius-input: 14px;
+  --radius-pill: 12px;
+
+  /* Spacing */
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+}
