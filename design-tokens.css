@@ -1,54 +1,23 @@
 :root {
   /* Colors */
-  --color-bg: #0B1220;
-  --color-card: #121A2B;
-  --color-card-glass: rgba(18, 26, 43, 0.75);
-  --color-primary: #3B82F6;
-  --color-primary-soft: rgba(59, 130, 246, 0.15);
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  --color-card: #151C3F;
+  --color-accent-primary: #4F7BFF;
+  --color-accent-soft: #2F4FA8;
+  --color-bg-primary: #0E1430;
   --color-text-primary: #FFFFFF;
-  --color-text-secondary: rgba(255,255,255,0.75);
-  --color-text-muted: rgba(255,255,255,0.55);
-  --color-border: rgba(255,255,255,0.08);
-
-  /* Typography */
-  --font-hero-number: 56px;
-  --font-hero-label: 16px;
-  --font-section-title: 20px;
-  --font-body: 15px;
-  --font-small: 13px;
-  --font-weight-hero: 700;
-  --font-weight-title: 600;
-  --font-weight-body: 400;
+  --color-text-secondary: #A8B2D1;
 
   /* Radius */
-  --radius-card: 24px;
-  --radius-input: 14px;
+  --radius-card: 20px;
   --radius-button: 16px;
+  --radius-input: 14px;
   --radius-pill: 12px;
-  --radius-circle: 50%;
 
   /* Spacing */
-  --space-xs: 6px;
-  --space-sm: 10px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
-  --space-xxl: 40px;
-
-  /* Component sizing */
-  --container-max-width: 420px;
-  --input-height: 52px;
-  --button-height: 56px;
-  --ring-size: 180px;
-  --ring-stroke: 14px;
-  --card-padding: 20px;
-  --section-gap: 28px;
-
-  /* Shadows / glass */
-  --shadow-card: 0 10px 30px rgba(0,0,0,0.35);
-  --shadow-soft: 0 6px 20px rgba(0,0,0,0.25);
-  --blur-glass: blur(18px);
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
 }
