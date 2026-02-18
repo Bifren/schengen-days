@@ -191,7 +191,7 @@ function setHero() {
   ring.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(2);
 
   el("ringNumber").textContent = String(remaining);
-  el("heroLabel").textContent = "Days left";
+  el("heroLabel").textContent = `You have ${remaining} days left`;
 
   if (used > 90) {
     const overstayDays = used - 90;
@@ -202,24 +202,27 @@ function setHero() {
 
   const stayDays = remaining > 0 ? remaining : 1;
   const leaveBy = addDays(todayIndex, stayDays - 1);
-  el("heroSentence").textContent = `If you enter today, you must leave by ${fmtYMD(fromDayIndex(leaveBy))}.`;
+  el("heroSentence").textContent = `If you enter today, you can stay until ${fmtYMD(fromDayIndex(leaveBy))}.`;
 }
 
 function renderTimeline() {
   const grid = el("timelineGrid");
   const empty = el("timelineEmpty");
-  const meta = el("timelineMeta");
+  const range = el("timelineRange");
+  const usage = el("timelineUsage");
   grid.innerHTML = "";
 
   if (!trips.length) {
     empty.classList.remove("hide");
-    meta.classList.add("hide");
+    range.classList.add("hide");
+    usage.classList.add("hide");
     grid.classList.add("hide");
     return;
   }
 
   empty.classList.add("hide");
-  meta.classList.remove("hide");
+  range.classList.remove("hide");
+  usage.classList.remove("hide");
   grid.classList.remove("hide");
 
   const today = Math.floor(Date.now() / DAY_MS);
@@ -243,7 +246,10 @@ function renderTimeline() {
     grid.appendChild(cell);
   }
 
-  meta.textContent = `Window: ${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))} • Used: ${computeUsedDays(today, trips)}/90 • Left: ${computeRemaining(today, trips)}`;
+  const used = computeUsedDays(today, trips);
+  const remaining = computeRemaining(today, trips);
+  range.textContent = `${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))}`;
+  usage.textContent = `${used} of 90 days used • ${remaining} remaining`;
 }
 
 function showToast(text, canUndo = false) {
@@ -386,14 +392,8 @@ function renderTrips() {
         <div class="tripSub">${len} days</div>
       </div>
       <div class="rowBtns">
-        <button class="secondary iconBtn" data-edit="${i}" aria-label="Edit trip">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="2"/><path d="m12 6 4 4" stroke="currentColor" stroke-width="2"/></svg>
-          Edit
-        </button>
-        <button class="secondary iconBtn" data-del="${i}" aria-label="Delete trip">
-          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 7h16" stroke="currentColor" stroke-width="2"/><path d="M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2"/><path d="M9 7V4h6v3" stroke="currentColor" stroke-width="2"/></svg>
-          Delete
-        </button>
+        <button class="iconOnlyBtn" data-edit="${i}" aria-label="Edit trip" title="Edit trip">✏</button>
+        <button class="iconOnlyBtn" data-del="${i}" aria-label="Delete trip" title="Delete trip">🗑</button>
       </div>
     `;
     list.appendChild(row);

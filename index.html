@@ -49,13 +49,13 @@
       padding: var(--space-16);
     }
 
-    .hero { display: grid; justify-items: center; text-align: center; gap: var(--space-12); }
+    .hero { display: grid; justify-items: center; text-align: center; gap: var(--space-8); }
     .ring { position: relative; width: 180px; height: 180px; display: grid; place-items: center; }
     .ringSvg { width: 180px; height: 180px; transform: rotate(-90deg); }
     .ringTrack { fill: none; stroke: rgba(255,255,255,.12); stroke-width: 14px; }
     .ringProgress { fill: none; stroke: var(--risk-safe); stroke-width: 14px; stroke-linecap: round; transition: stroke .2s, stroke-dashoffset .35s ease; }
     .ringNumber { position: absolute; font-size: 56px; font-weight: 700; line-height: 1; }
-    .heroLabel { margin: 0; color: var(--color-text-secondary); font-size: 20px; font-weight: 600; }
+    .heroLabel { margin: -4px 0 0; color: var(--color-text-secondary); font-size: 20px; font-weight: 600; }
     .heroSub { margin: 0; color: var(--color-text-primary); font-size: 16px; }
 
     .hero.risk-safe .ringProgress { stroke: var(--risk-safe); }
@@ -78,7 +78,8 @@
     }
 
     .timelineHead { margin: 0 0 var(--space-8); font-size: 18px; }
-    .timelineMeta { margin: 0 0 var(--space-8); color: var(--color-text-secondary); font-size: 13px; }
+    .timelineRange { margin: 0 0 4px; color: var(--color-text-secondary); font-size: 13px; }
+    .timelineUsage { margin: 0 0 var(--space-8); color: var(--color-text-primary); font-size: 14px; }
     .timelineGrid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; }
     .dayCell { height: 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
     .dayCell.used { background: var(--color-accent-primary); }
@@ -107,6 +108,40 @@
       color: var(--color-text-primary);
       border-radius: var(--radius-pill);
       padding: 0 var(--space-12);
+    }
+
+    .iconOnlyBtn {
+      min-width: 40px;
+      min-height: 40px;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,.05);
+      border-radius: var(--radius-pill);
+      color: var(--color-text-primary);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .modalCloseBtn {
+      position: absolute;
+      top: var(--space-12);
+      right: var(--space-12);
+      min-width: 40px;
+      min-height: 40px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,.05);
+      color: var(--color-text-primary);
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
     }
 
     .modalLayer {
@@ -216,17 +251,18 @@
         </svg>
         <div id="ringNumber" class="ringNumber">90</div>
       </div>
-      <p id="heroLabel" class="heroLabel">Days left</p>
+      <p id="heroLabel" class="heroLabel">You have 90 days left</p>
       <p id="heroSentence" class="heroSub">If you enter today, you must leave by —.</p>
     </section>
 
     <section class="card">
-      <h3 class="timelineHead">Timeline (rolling 180 days)</h3>
+      <h3 class="timelineHead">Your last 180 days</h3>
       <div id="timelineEmpty" class="emptyState hide">
         <p class="emptyTitle">No trips yet.</p>
         <p class="emptyText">Add your first trip to start tracking.</p>
       </div>
-      <p id="timelineMeta" class="timelineMeta"></p>
+      <p id="timelineRange" class="timelineRange"></p>
+      <p id="timelineUsage" class="timelineUsage"></p>
       <div id="timelineGrid" class="timelineGrid"></div>
     </section>
 
@@ -246,8 +282,8 @@
     <section class="modalCard" role="dialog" aria-modal="true" aria-labelledby="tripModalTitle">
       <div class="modalHead">
         <h2 id="tripModalTitle" class="modalTitle">Add a trip</h2>
-        <button id="closeTripModalBtn" type="button" class="secondary">Close</button>
       </div>
+      <button id="closeTripModalBtn" type="button" class="modalCloseBtn" aria-label="Close add trip modal" title="Close">×</button>
 
       <div class="field">
         <label class="label" for="entryDate">Entry date</label>
