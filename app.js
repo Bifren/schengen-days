@@ -172,7 +172,7 @@ function setHero() {
   hero.classList.remove("safe", "warning", "danger", "critical");
   hero.classList.add(status);
 
-  const radius = 72;
+  const radius = 62;
   const circumference = 2 * Math.PI * radius;
   const progress = Math.max(0, Math.min(1, remaining / 90));
   const ring = el("heroRingProgress");
