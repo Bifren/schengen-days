@@ -6,9 +6,6 @@ let editingIndex = null;
 let toastTimer;
 let undoTimer;
 let pendingDeleted = null;
-let viewMode = "summary";
-let whatIfMode = false;
-let previewMode = false;
 let userTouchedExit = false;
 
 const el = (id) => document.getElementById(id);
@@ -134,6 +131,18 @@ function getHeroRisk(remaining) {
   return "risk-safe";
 }
 
+function getDraftTrips() {
+  const trip = { entry: el("entryDate").value, exit: el("exitDate").value };
+  const eIdx = toDayIndex(trip.entry);
+  const xIdx = toDayIndex(trip.exit);
+  if (eIdx === null || xIdx === null || xIdx < eIdx) return [...trips];
+
+  const next = [...trips];
+  if (editingIndex === null) next.push(trip);
+  else next[editingIndex] = trip;
+  return normalizeTrips(next);
+}
+
 function selectedTripInfo() {
   const entry = el("entryDate").value;
   const exit = el("exitDate").value;
@@ -147,27 +156,11 @@ function selectedTripInfo() {
     return { ok: false, days: null, msg: "Exit date must be on or after entry date.", invalidOrder: true, warning: "" };
   }
 
-  const draft = getDraftTrips();
   const today = Math.floor(Date.now() / DAY_MS);
-  const usedWithDraft = computeUsedDays(today, draft);
+  const usedWithDraft = computeUsedDays(today, getDraftTrips());
   const warning = usedWithDraft > 90 ? "Warning: this trip can exceed the 90-day limit in the current 180-day window." : "";
 
   return { ok: true, days: diffDaysInclusive(eIdx, xIdx), msg: "", invalidOrder: false, warning };
-}
-
-function getDraftTrips() {
-  const info = {
-    entry: el("entryDate").value,
-    exit: el("exitDate").value
-  };
-  const eIdx = toDayIndex(info.entry);
-  const xIdx = toDayIndex(info.exit);
-  if (eIdx === null || xIdx === null || xIdx < eIdx) return [...trips];
-
-  const next = [...trips];
-  if (editingIndex === null) next.push(info);
-  else next[editingIndex] = info;
-  return normalizeTrips(next);
 }
 
 function syncTripForm() {
@@ -179,8 +172,6 @@ function syncTripForm() {
   el("tripWarning").classList.toggle("hide", !info.warning);
   el("saveTripBtn").disabled = !info.ok;
   el("swapDatesBtn").classList.toggle("hide", !info.invalidOrder);
-  renderWhatIf();
-  renderTimeline();
 }
 
 function setHero() {
@@ -200,74 +191,59 @@ function setHero() {
   ring.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(2);
 
   el("ringNumber").textContent = String(remaining);
+  el("heroLabel").textContent = "Days left";
+
   if (used > 90) {
     const overstayDays = used - 90;
     const next = getNextPossibleEntry(todayIndex);
     el("heroSentence").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
     return;
   }
+
   const stayDays = remaining > 0 ? remaining : 1;
   const leaveBy = addDays(todayIndex, stayDays - 1);
   el("heroSentence").textContent = `If you enter today, you must leave by ${fmtYMD(fromDayIndex(leaveBy))}.`;
 }
 
-function renderWhatIf() {
-  const impact = el("whatIfImpact");
-  if (!whatIfMode) {
-    impact.textContent = "Enable preview to see remaining-days impact before saving.";
-    return;
-  }
-
-  const info = selectedTripInfo();
-  if (!info.ok) {
-    impact.textContent = "Choose valid entry and exit dates to preview impact.";
-    return;
-  }
-
-  const today = Math.floor(Date.now() / DAY_MS);
-  const currentRemaining = computeRemaining(today, trips);
-  const previewRemaining = computeRemaining(today, getDraftTrips());
-  const diff = previewRemaining - currentRemaining;
-  const sign = diff > 0 ? "+" : "";
-  impact.textContent = `Remaining now: ${currentRemaining} • Preview: ${previewRemaining} (${sign}${diff}).`;
-}
-
-function getUsedDaySet(asOfDayIndex, sourceTrips = trips) {
-  const set = new Set();
-  const ws = asOfDayIndex - 179;
-  for (const t of normalizeTrips(sourceTrips)) {
-    const s = toDayIndex(t.entry);
-    const e = toDayIndex(t.exit);
-    if (s === null || e === null) continue;
-    const from = Math.max(s, ws);
-    const to = Math.min(e, asOfDayIndex);
-    for (let d = from; d <= to; d++) set.add(d);
-  }
-  return set;
-}
-
 function renderTimeline() {
   const grid = el("timelineGrid");
-  if (!grid) return;
+  const empty = el("timelineEmpty");
+  const meta = el("timelineMeta");
   grid.innerHTML = "";
+
+  if (!trips.length) {
+    empty.classList.remove("hide");
+    meta.classList.add("hide");
+    grid.classList.add("hide");
+    return;
+  }
+
+  empty.classList.add("hide");
+  meta.classList.remove("hide");
+  grid.classList.remove("hide");
 
   const today = Math.floor(Date.now() / DAY_MS);
   const start = today - 179;
-  const usedSet = getUsedDaySet(today, trips);
-  const previewSet = whatIfMode ? getUsedDaySet(today, getDraftTrips()) : new Set();
+  const usedSet = new Set();
+
+  for (const t of normalizeTrips(trips)) {
+    const s = toDayIndex(t.entry);
+    const e = toDayIndex(t.exit);
+    if (s === null || e === null) continue;
+    const from = Math.max(s, start);
+    const to = Math.min(e, today);
+    for (let d = from; d <= to; d++) usedSet.add(d);
+  }
 
   for (let d = start; d <= today; d++) {
     const cell = document.createElement("div");
     cell.className = "dayCell";
     if (usedSet.has(d)) cell.classList.add("used");
-    if (!usedSet.has(d) && previewSet.has(d)) cell.classList.add("preview");
     if (d === today) cell.classList.add("today");
     grid.appendChild(cell);
   }
 
-  const used = computeUsedDays(today, trips);
-  const remaining = computeRemaining(today, trips);
-  el("timelineMeta").textContent = `Window: ${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))} • Used: ${used}/90 • Left: ${remaining}`;
+  meta.textContent = `Window: ${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))} • Used: ${computeUsedDays(today, trips)}/90 • Left: ${computeRemaining(today, trips)}`;
 }
 
 function showToast(text, canUndo = false) {
@@ -279,6 +255,16 @@ function showToast(text, canUndo = false) {
     el("toast").classList.remove("show");
     el("undoBtn").classList.add("hide");
   }, canUndo ? 5200 : 1700);
+}
+
+function openModal() {
+  el("tripModal").classList.add("open");
+  el("tripModal").setAttribute("aria-hidden", "false");
+}
+
+function closeModal() {
+  el("tripModal").classList.remove("open");
+  el("tripModal").setAttribute("aria-hidden", "true");
 }
 
 function quickSet(n, btn = null) {
@@ -334,6 +320,7 @@ function saveTripFromForm() {
   trips = normalizeTrips(trips);
   saveTrips(trips);
   clearEditMode();
+  closeModal();
   render();
 }
 
@@ -346,6 +333,7 @@ function setEditMode(index) {
   el("cancelEditBtn").classList.remove("hide");
   syncTripForm();
   document.querySelectorAll(".quickBtn").forEach((b) => b.classList.remove("active"));
+  openModal();
 }
 
 function clearEditMode() {
@@ -412,35 +400,11 @@ function renderTrips() {
   }
 }
 
-function setView(mode) {
-  viewMode = mode === "timeline" ? "timeline" : "summary";
-  const isSummary = viewMode === "summary";
-
-  el("viewSummaryBtn").classList.toggle("active", isSummary);
-  el("viewTimelineBtn").classList.toggle("active", !isSummary);
-  el("viewSummaryBtn").setAttribute("aria-pressed", String(isSummary));
-  el("viewTimelineBtn").setAttribute("aria-pressed", String(!isSummary));
-
-  el("formCard").classList.toggle("hide", !isSummary);
-  el("tripsCard").classList.toggle("hide", !isSummary);
-  el("timelineCard").classList.toggle("show", !isSummary);
-}
-
-function toggleWhatIf() {
-  previewMode = !previewMode;
-  whatIfMode = previewMode;
-  el("whatIfToggle").classList.toggle("active", previewMode);
-  el("whatIfToggle").setAttribute("aria-pressed", String(previewMode));
-  el("whatIfToggle").textContent = previewMode ? "Preview on" : "Preview off";
-  renderWhatIf();
-  renderTimeline();
-}
-
 function render() {
   setHero();
+  renderTimeline();
   renderTrips();
   syncTripForm();
-  renderTimeline();
 }
 
 function runSelfChecks() {
@@ -462,25 +426,30 @@ function runSelfChecks() {
 document.addEventListener("DOMContentLoaded", () => {
   trips = loadTrips();
 
-  const today = fromDayIndex(Math.floor(Date.now() / DAY_MS));
-  el("entryDate").value = today;
-  el("exitDate").value = fromDayIndex(addDays(Math.floor(Date.now() / DAY_MS), 6));
+  const todayIdx = Math.floor(Date.now() / DAY_MS);
+  el("entryDate").value = fromDayIndex(todayIdx);
+  el("exitDate").value = fromDayIndex(addDays(todayIdx, 6));
 
   el("entryDate").addEventListener("change", () => {
     autoSuggestExitFromEntry();
     syncTripForm();
   });
+
   el("exitDate").addEventListener("change", () => {
     userTouchedExit = true;
     syncTripForm();
   });
 
+  el("openAddTripBtn").addEventListener("click", () => {
+    clearEditMode();
+    openModal();
+  });
+  el("closeTripModalBtn").addEventListener("click", closeModal);
+  el("modalBackdrop").addEventListener("click", closeModal);
+
   el("saveTripBtn").addEventListener("click", saveTripFromForm);
   el("cancelEditBtn").addEventListener("click", clearEditMode);
   el("swapDatesBtn").addEventListener("click", swapDates);
-  el("whatIfToggle").addEventListener("click", toggleWhatIf);
-  el("viewSummaryBtn").addEventListener("click", () => setView("summary"));
-  el("viewTimelineBtn").addEventListener("click", () => setView("timeline"));
 
   document.querySelectorAll("[data-quick]").forEach((btn) => {
     btn.addEventListener("click", () => quickSet(btn.dataset.quick, btn));
@@ -495,8 +464,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   el("undoBtn").addEventListener("click", undoDelete);
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+
   runSelfChecks();
-  el("whatIfToggle").setAttribute("aria-pressed", "false");
-  setView("summary");
   render();
 });

@@ -10,13 +10,14 @@
   <style>
     * { box-sizing: border-box; }
     html, body { height: 100%; }
+
     :root {
-      --risk-safe: #22C55E;
-      --risk-mid: #F59E0B;
-      --risk-high: #EF4444;
       --glass-border: rgba(255,255,255,.08);
       --soft-shadow: 0 12px 28px rgba(0,0,0,.35);
       --inner-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+      --risk-safe: #22C55E;
+      --risk-mid: #F59E0B;
+      --risk-high: #EF4444;
     }
 
     .app {
@@ -56,6 +57,7 @@
     .ringNumber { position: absolute; font-size: 56px; font-weight: 700; line-height: 1; }
     .heroLabel { margin: 0; color: var(--color-text-secondary); font-size: 20px; font-weight: 600; }
     .heroSub { margin: 0; color: var(--color-text-primary); font-size: 16px; }
+
     .hero.risk-safe .ringProgress { stroke: var(--risk-safe); }
     .hero.risk-warning .ringProgress { stroke: var(--risk-mid); }
     .hero.risk-danger .ringProgress,
@@ -63,19 +65,82 @@
     .hero.risk-critical .ring { animation: pulseRing 1.2s ease-in-out infinite; }
     @keyframes pulseRing { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
 
-    .viewToggle { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
-    .segBtn {
-      min-height: 44px;
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--glass-border);
-      background: transparent;
-      color: var(--color-text-secondary);
-      font-weight: 600;
+    .primaryBtn {
+      width: 100%;
+      min-height: 52px;
+      border: none;
+      border-radius: var(--radius-button);
+      background: linear-gradient(180deg, #5b88ff, var(--color-accent-primary));
+      color: var(--color-text-primary);
+      font-size: 18px;
+      font-weight: 700;
+      box-shadow: 0 8px 18px rgba(79,123,255,.35);
     }
-    .segBtn.active { background: var(--color-accent-soft); color: var(--color-text-primary); border-color: var(--color-accent-primary); }
-    .segBtn:not(.active) { background: transparent; color: var(--color-text-secondary); border-color: var(--glass-border); }
 
-    .sectionTitle { margin: 0 0 var(--space-12); font-size: 30px; font-weight: 600; text-align: center; }
+    .timelineHead { margin: 0 0 var(--space-8); font-size: 18px; }
+    .timelineMeta { margin: 0 0 var(--space-8); color: var(--color-text-secondary); font-size: 13px; }
+    .timelineGrid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; }
+    .dayCell { height: 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
+    .dayCell.used { background: var(--color-accent-primary); }
+    .dayCell.today { outline: 1px solid #fff; }
+
+    .emptyState { text-align: center; padding: var(--space-16) 0; }
+    .emptyTitle { margin: 0 0 var(--space-8); font-size: 18px; }
+    .emptyText { margin: 0; color: var(--color-text-secondary); }
+
+    .tripsTitle { margin: 0 0 var(--space-8); font-size: 18px; }
+    .tripRow {
+      display: flex; justify-content: space-between; gap: var(--space-8); align-items: flex-start;
+      border: 1px solid var(--glass-border); border-radius: var(--radius-input);
+      background: rgba(255,255,255,.03); padding: var(--space-12); margin-bottom: var(--space-8);
+    }
+    .tripMain { font-weight: 600; }
+    .tripSub { margin-top: 3px; font-size: 13px; color: var(--color-text-secondary); }
+    .rowBtns { display: flex; gap: var(--space-8); }
+    .iconBtn { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
+    .icon { width: 13px; height: 13px; }
+
+    .secondary {
+      min-height: 44px;
+      border: 1px solid var(--glass-border);
+      background: rgba(255,255,255,.05);
+      color: var(--color-text-primary);
+      border-radius: var(--radius-pill);
+      padding: 0 var(--space-12);
+    }
+
+    .modalLayer {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: grid;
+      align-items: end;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+    .modalLayer.open { opacity: 1; pointer-events: auto; }
+    .modalBackdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(5,8,22,.65);
+      backdrop-filter: blur(4px);
+    }
+    .modalCard {
+      position: relative;
+      margin: 0 var(--space-8) var(--space-8);
+      border-radius: 24px;
+      background: rgba(21,28,63,.98);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--soft-shadow), var(--inner-shadow);
+      padding: var(--space-16);
+      transform: translateY(20px);
+      transition: transform .25s ease;
+    }
+    .modalLayer.open .modalCard { transform: translateY(0); }
+    .modalHead { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-12); }
+    .modalTitle { margin: 0; font-size: 24px; }
+
     .field { display: grid; gap: var(--space-8); margin-bottom: var(--space-12); }
     .label { color: var(--color-text-secondary); font-size: 15px; font-weight: 600; }
     .inputWrap { position: relative; }
@@ -94,7 +159,7 @@
     .calIcon { position: absolute; right: var(--space-12); top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--color-text-secondary); pointer-events: none; }
     .input::-webkit-calendar-picker-indicator { opacity: 0; position: absolute; right: 0; width: 40px; height: 100%; }
 
-    .quick-pills { display: flex; gap: var(--space-8); margin: var(--space-8) 0 var(--space-16); }
+    .quick-pills { display: flex; gap: var(--space-8); margin: var(--space-8) 0 var(--space-12); }
     .pill {
       min-height: 44px;
       min-width: 48px;
@@ -112,29 +177,7 @@
     .error { color: #ffb3b3; }
     .warn { color: #ffd28f; }
 
-    .whatIf {
-      margin: 0 0 var(--space-16);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-input);
-      background: rgba(255,255,255,.03);
-      padding: var(--space-12);
-      display: grid;
-      gap: var(--space-8);
-    }
-    .whatIfHead { display: flex; justify-content: space-between; align-items: center; gap: var(--space-8); }
-    .whatIfBtn {
-      min-height: 44px;
-      padding: 0 var(--space-12);
-      border-radius: var(--radius-pill);
-      border: 1px solid var(--glass-border);
-      background: rgba(255,255,255,.05);
-      color: var(--color-text-primary);
-      font-weight: 600;
-    }
-    .whatIfBtn.active { background: var(--color-accent-soft); border-color: var(--color-accent-primary); }
-    .whatIfText { margin: 0; color: var(--color-text-secondary); font-size: 13px; }
-
-    .btn-primary {
+    .saveBtn {
       width: 100%;
       min-height: 52px;
       border: none;
@@ -144,45 +187,14 @@
       font-size: 20px;
       font-weight: 700;
       margin-top: var(--space-12);
-      box-shadow: 0 8px 18px rgba(79,123,255,.35);
     }
-    .btn-primary:disabled { opacity: .5; }
+    .saveBtn:disabled { opacity: .5; }
 
     .subActions { margin-top: var(--space-8); display: flex; gap: var(--space-8); justify-content: flex-end; }
-    .secondary {
-      min-height: 44px;
-      border: 1px solid var(--glass-border);
-      background: rgba(255,255,255,.05);
-      color: var(--color-text-primary);
-      border-radius: var(--radius-pill);
-      padding: 0 var(--space-12);
-    }
-
-    .tripsTitle { margin: 0 0 var(--space-8); font-size: 18px; }
-    .tripRow {
-      display: flex; justify-content: space-between; gap: var(--space-8); align-items: flex-start;
-      border: 1px solid var(--glass-border); border-radius: var(--radius-input);
-      background: rgba(255,255,255,.03); padding: var(--space-12); margin-bottom: var(--space-8);
-    }
-    .tripMain { font-weight: 600; }
-    .tripSub { margin-top: 3px; font-size: 13px; color: var(--color-text-secondary); }
-    .rowBtns { display: flex; gap: var(--space-8); }
-    .iconBtn { min-height: 44px; display: inline-flex; align-items: center; gap: 4px; }
-    .icon { width: 13px; height: 13px; }
-
-    .timelineCard { display: none; }
-    .timelineCard.show { display: block; }
-    .timelineHead { margin: 0 0 var(--space-8); font-size: 18px; }
-    .timelineMeta { margin: 0 0 var(--space-8); color: var(--color-text-secondary); font-size: 13px; }
-    .timelineGrid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; }
-    .dayCell { height: 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
-    .dayCell.used { background: var(--color-accent-primary); }
-    .dayCell.today { outline: 1px solid #fff; }
-    .dayCell.preview { background: #F59E0B; }
 
     .toast {
       position: fixed; left: 50%; transform: translateX(-50%);
-      bottom: calc(var(--space-24) + env(safe-area-inset-bottom)); z-index: 20;
+      bottom: calc(var(--space-24) + env(safe-area-inset-bottom)); z-index: 40;
       background: rgba(21,28,63,.96); border: 1px solid var(--glass-border);
       border-radius: var(--radius-pill); padding: var(--space-8) var(--space-12);
       display: flex; gap: var(--space-8); align-items: center;
@@ -208,13 +220,34 @@
       <p id="heroSentence" class="heroSub">If you enter today, you must leave by —.</p>
     </section>
 
-    <div class="viewToggle">
-      <button id="viewSummaryBtn" class="segBtn active" type="button">Summary</button>
-      <button id="viewTimelineBtn" class="segBtn" type="button">Timeline</button>
-    </div>
+    <section class="card">
+      <h3 class="timelineHead">Timeline (rolling 180 days)</h3>
+      <div id="timelineEmpty" class="emptyState hide">
+        <p class="emptyTitle">No trips yet.</p>
+        <p class="emptyText">Add your first trip to start tracking.</p>
+      </div>
+      <p id="timelineMeta" class="timelineMeta"></p>
+      <div id="timelineGrid" class="timelineGrid"></div>
+    </section>
 
-    <section id="formCard" class="card">
-      <h2 class="sectionTitle">Add a trip</h2>
+    <button id="openAddTripBtn" type="button" class="primaryBtn">+ Add trip</button>
+
+    <section id="tripsCard" class="card">
+      <h3 class="tripsTitle">Your trips</h3>
+      <div id="tripsEmpty" class="tripSub">You haven’t added any trips yet.</div>
+      <div id="tripsList"></div>
+    </section>
+
+    <p class="subtitle">Estimates only. Verify official Schengen rules.</p>
+  </main>
+
+  <div id="tripModal" class="modalLayer" aria-hidden="true">
+    <div id="modalBackdrop" class="modalBackdrop"></div>
+    <section class="modalCard" role="dialog" aria-modal="true" aria-labelledby="tripModalTitle">
+      <div class="modalHead">
+        <h2 id="tripModalTitle" class="modalTitle">Add a trip</h2>
+        <button id="closeTripModalBtn" type="button" class="secondary">Close</button>
+      </div>
 
       <div class="field">
         <label class="label" for="entryDate">Entry date</label>
@@ -243,35 +276,13 @@
       <p id="tripError" class="hint error"></p>
       <p id="tripWarning" class="hint warn"></p>
 
-      <div class="whatIf">
-        <div class="whatIfHead">
-          <strong>What if mode</strong>
-          <button id="whatIfToggle" type="button" class="whatIfBtn">Preview off</button>
-        </div>
-        <p id="whatIfImpact" class="whatIfText">Enable preview to see remaining-days impact before saving.</p>
-      </div>
-
-      <button id="saveTripBtn" type="button" class="btn-primary">Save trip</button>
+      <button id="saveTripBtn" type="button" class="saveBtn">Save trip</button>
       <div class="subActions">
         <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
         <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
       </div>
     </section>
-
-    <section id="tripsCard" class="card">
-      <h3 class="tripsTitle">Your trips</h3>
-      <div id="tripsEmpty" class="tripSub">You haven’t added any trips yet.</div>
-      <div id="tripsList"></div>
-    </section>
-
-    <section id="timelineCard" class="card timelineCard">
-      <h3 class="timelineHead">Timeline (rolling 180 days)</h3>
-      <p id="timelineMeta" class="timelineMeta"></p>
-      <div id="timelineGrid" class="timelineGrid"></div>
-    </section>
-
-    <p class="subtitle">Estimates only. Verify official Schengen rules.</p>
-  </main>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite">
     <span id="toastText"></span>
