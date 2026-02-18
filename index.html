@@ -31,11 +31,11 @@
     }
 
     .card {
-      background: color-mix(in srgb, var(--color-card) 85%, transparent);
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+      background: var(--color-card);
+      border: 1px solid var(--color-accent-soft);
       border-radius: var(--radius-card);
       padding: calc(var(--space-8) + var(--space-12));
-      box-shadow: 0 10px 30px color-mix(in srgb, var(--color-bg-primary) 65%, transparent);
+      box-shadow: 0 10px 30px var(--color-bg-primary);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
     }
@@ -61,7 +61,7 @@
       transform: rotate(-90deg);
     }
 
-    .ringTrack { fill: none; stroke: color-mix(in srgb, var(--color-text-primary) 8%, transparent); stroke-width: 14px; }
+    .ringTrack { fill: none; stroke: var(--color-accent-soft); stroke-width: 14px; }
     .ringProgress {
       fill: none;
       stroke: var(--color-accent-primary);
@@ -119,8 +119,8 @@
     .input {
       width: 100%;
       height: 52px;
-      background: color-mix(in srgb, var(--color-accent-soft) 28%, var(--color-card));
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+      background: var(--color-accent-soft);
+      border: 1px solid var(--color-accent-soft);
       border-radius: var(--radius-input);
       color: var(--color-text-primary);
       font-size: 17px;
@@ -153,17 +153,17 @@
     .pill {
       min-width: calc(var(--space-24) * 2);
       height: 44px;
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+      border: 1px solid var(--color-accent-soft);
       border-radius: var(--radius-pill);
-      background: color-mix(in srgb, var(--color-accent-soft) 36%, var(--color-card));
+      background: var(--color-accent-soft);
       color: var(--color-text-primary);
       font-size: 24px;
       font-weight: 700;
     }
 
     .pill.active {
-      background: color-mix(in srgb, var(--color-accent-primary) 52%, var(--color-card));
-      border-color: color-mix(in srgb, var(--color-accent-primary) 70%, transparent);
+      background: var(--color-accent-primary);
+      border-color: var(--color-accent-primary);
     }
 
     .tripMeta { margin: 0 0 var(--space-8); color: var(--color-text-secondary); }
@@ -183,8 +183,8 @@
     .subActions { display: flex; justify-content: space-between; gap: var(--space-8); }
 
     .secondary {
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 18%, transparent);
-      background: color-mix(in srgb, var(--color-text-primary) 5%, transparent);
+      border: 1px solid var(--color-accent-soft);
+      background: var(--color-accent-soft);
       color: var(--color-text-primary);
       border-radius: var(--radius-pill);
       padding: var(--space-8) var(--space-8);
@@ -202,10 +202,10 @@
       gap: var(--space-8);
       align-items: flex-start;
       padding: var(--space-8);
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
+      border: 1px solid var(--color-accent-soft);
       border-radius: var(--radius-input);
       margin-bottom: var(--space-8);
-      background: color-mix(in srgb, var(--color-text-primary) 3%, transparent);
+      background: var(--color-card);
     }
 
     .tripMain { font-weight: 700; }
@@ -213,9 +213,9 @@
     .rowBtns { display: flex; gap: var(--space-4); }
     .iconBtn { display: inline-flex; align-items: center; gap: var(--space-4); }
     .iconBtn.danger {
-      color: color-mix(in srgb, var(--color-accent-primary) 30%, var(--color-text-primary));
-      border-color: color-mix(in srgb, var(--color-accent-primary) 30%, transparent);
-      background: color-mix(in srgb, var(--color-accent-primary) 8%, transparent);
+      color: var(--color-text-primary);
+      border-color: var(--color-accent-primary);
+      background: var(--color-accent-soft);
     }
     .icon { width: 13px; height: 13px; }
 
@@ -234,9 +234,9 @@
       bottom: calc(var(--space-32) + env(safe-area-inset-bottom));
       z-index: 20;
       border-radius: var(--radius-pill);
-      border: 1px solid color-mix(in srgb, var(--color-text-primary) 8%, transparent);
-      background: color-mix(in srgb, var(--color-card) 96%, transparent);
-      box-shadow: 0 6px 20px color-mix(in srgb, var(--color-bg-primary) 65%, transparent);
+      border: 1px solid var(--color-accent-soft);
+      background: var(--color-card);
+      box-shadow: 0 6px 20px var(--color-bg-primary);
       padding: var(--space-8) var(--space-12);
       display: flex;
       gap: var(--space-8);
