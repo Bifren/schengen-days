@@ -7,6 +7,7 @@ let toastTimer;
 let undoTimer;
 let pendingDeleted = null;
 let userTouchedExit = false;
+let activeTab = "status";
 
 const el = (id) => document.getElementById(id);
 
@@ -191,7 +192,7 @@ function setHero() {
   ring.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(2);
 
   el("ringNumber").textContent = String(remaining);
-  el("heroLabel").textContent = `You have ${remaining} days left`;
+  el("heroLabel").textContent = "Days left";
 
   if (used > 90) {
     const overstayDays = used - 90;
@@ -261,6 +262,19 @@ function showToast(text, canUndo = false) {
     el("toast").classList.remove("show");
     el("undoBtn").classList.add("hide");
   }, canUndo ? 5200 : 1700);
+}
+
+function setTab(tab) {
+  activeTab = tab === "trips" ? "trips" : "status";
+  const isStatus = activeTab === "status";
+
+  el("tabStatusBtn").classList.toggle("active", isStatus);
+  el("tabTripsBtn").classList.toggle("active", !isStatus);
+  el("tabStatusBtn").setAttribute("aria-selected", String(isStatus));
+  el("tabTripsBtn").setAttribute("aria-selected", String(!isStatus));
+
+  el("statusTabContent").classList.toggle("hide", !isStatus);
+  el("tripsCard").classList.toggle("hide", isStatus);
 }
 
 function openModal() {
@@ -440,6 +454,9 @@ document.addEventListener("DOMContentLoaded", () => {
     syncTripForm();
   });
 
+  el("tabStatusBtn").addEventListener("click", () => setTab("status"));
+  el("tabTripsBtn").addEventListener("click", () => setTab("trips"));
+
   el("openAddTripBtn").addEventListener("click", () => {
     clearEditMode();
     openModal();
@@ -469,5 +486,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   runSelfChecks();
+  setTab("status");
   render();
 });

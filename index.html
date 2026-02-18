@@ -55,8 +55,8 @@
     .ringTrack { fill: none; stroke: rgba(255,255,255,.12); stroke-width: 14px; }
     .ringProgress { fill: none; stroke: var(--risk-safe); stroke-width: 14px; stroke-linecap: round; transition: stroke .2s, stroke-dashoffset .35s ease; }
     .ringNumber { position: absolute; font-size: 56px; font-weight: 700; line-height: 1; }
-    .heroLabel { margin: -4px 0 0; color: var(--color-text-secondary); font-size: 20px; font-weight: 600; }
-    .heroSub { margin: 0; color: var(--color-text-primary); font-size: 16px; }
+    .heroLabel { margin: -8px 0 0; color: var(--color-text-secondary); font-size: 20px; font-weight: 600; }
+    .heroSub { margin: 0; color: rgba(255,255,255,.72); font-size: 14px; }
 
     .hero.risk-safe .ringProgress { stroke: var(--risk-safe); }
     .hero.risk-warning .ringProgress { stroke: var(--risk-mid); }
@@ -64,6 +64,23 @@
     .hero.risk-critical .ringProgress { stroke: var(--risk-high); }
     .hero.risk-critical .ring { animation: pulseRing 1.2s ease-in-out infinite; }
     @keyframes pulseRing { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03); } }
+
+    
+
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
+    .tabBtn {
+      min-height: 44px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--glass-border);
+      background: transparent;
+      color: var(--color-text-secondary);
+      font-weight: 600;
+    }
+    .tabBtn.active {
+      background: rgba(255,255,255,.10);
+      color: var(--color-text-primary);
+      border-color: rgba(255,255,255,.22);
+    }
 
     .primaryBtn {
       width: 100%;
@@ -83,7 +100,8 @@
     .timelineGrid { display: grid; grid-template-columns: repeat(30, 1fr); gap: 4px; }
     .dayCell { height: 8px; border-radius: 999px; background: rgba(255,255,255,.12); }
     .dayCell.used { background: var(--color-accent-primary); }
-    .dayCell.today { outline: 1px solid #fff; }
+    .dayCell.today { outline: 1px solid #fff; outline-offset: 1px; }
+    .timelineHint { margin: var(--space-8) 0 0; color: var(--color-text-secondary); font-size: 12px; display: flex; justify-content: space-between; }
 
     .emptyState { text-align: center; padding: var(--space-16) 0; }
     .emptyTitle { margin: 0 0 var(--space-8); font-size: 18px; }
@@ -251,12 +269,18 @@
         </svg>
         <div id="ringNumber" class="ringNumber">90</div>
       </div>
-      <p id="heroLabel" class="heroLabel">You have 90 days left</p>
+      <p id="heroLabel" class="heroLabel">Days left</p>
       <p id="heroSentence" class="heroSub">If you enter today, you must leave by —.</p>
     </section>
 
-    <section class="card">
-      <h3 class="timelineHead">Your last 180 days</h3>
+    <div class="tabs" role="tablist" aria-label="Main sections">
+      <button id="tabStatusBtn" class="tabBtn active" type="button" role="tab" aria-selected="true" title="Status">Status</button>
+      <button id="tabTripsBtn" class="tabBtn" type="button" role="tab" aria-selected="false" title="Trips">Trips</button>
+    </div>
+
+    <section id="statusTabContent" class="statusTabContent"> 
+      <section class="card">
+      <h3 class="timelineHead">Last 180 days</h3>
       <div id="timelineEmpty" class="emptyState hide">
         <p class="emptyTitle">No trips yet.</p>
         <p class="emptyText">Add your first trip to start tracking.</p>
@@ -264,11 +288,13 @@
       <p id="timelineRange" class="timelineRange"></p>
       <p id="timelineUsage" class="timelineUsage"></p>
       <div id="timelineGrid" class="timelineGrid"></div>
+      <p class="timelineHint"><span>← 180 days ago</span><span>Today →</span></p>
+      </section>
+
+      <button id="openAddTripBtn" type="button" class="primaryBtn">+ Add trip</button>
     </section>
 
-    <button id="openAddTripBtn" type="button" class="primaryBtn">+ Add trip</button>
-
-    <section id="tripsCard" class="card">
+    <section id="tripsCard" class="card hide">
       <h3 class="tripsTitle">Your trips</h3>
       <div id="tripsEmpty" class="tripSub">You haven’t added any trips yet.</div>
       <div id="tripsList"></div>
