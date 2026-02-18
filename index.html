@@ -4,375 +4,335 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Schengen Days</title>
-  <meta name="theme-color" content="#0A84FF" />
+  <meta name="theme-color" content="#0E1430" />
   <link rel="manifest" href="manifest.webmanifest" />
-
+  <link rel="stylesheet" href="./design-tokens.css" />
   <style>
-    :root{
-      --bg: #0b0f17;
-      --card: rgba(255,255,255,.06);
-      --stroke: rgba(255,255,255,.10);
-      --text: rgba(255,255,255,.92);
-      --mut: rgba(255,255,255,.62);
-      --pri: #0A84FF;
-      --ok: #34C759;
-      --warn: #FF9F0A;
-      --bad: #FF453A;
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
 
-      --r: 18px;
-      --shadow: 0 14px 50px rgba(0,0,0,.35);
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font:16px/1.35 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color: var(--text);
-      background:
-        radial-gradient(1100px 600px at 20% -20%, rgba(10,132,255,.24), transparent 55%),
-        radial-gradient(900px 500px at 100% 0%, rgba(52,199,89,.12), transparent 55%),
-        var(--bg);
+    body.app {
+      margin: 0;
+      min-height: 100%;
+      background: #0E1430;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
     }
 
-    .wrap{
-      max-width: 920px;
+    .container {
+      width: 402px;
+      max-width: 100%;
       margin: 0 auto;
-      padding: 18px 16px 98px; /* bottom tab space */
-    }
-
-    .topbar{
-      display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
-      margin-bottom: 14px;
-    }
-    .title{
-      margin:0; font-size:22px; font-weight:800; letter-spacing:-.02em;
-    }
-    .subtitle{
-      margin-top:6px;
-      font-size:12px; color:var(--mut);
-    }
-
-    .card{
-      background: var(--card);
-      border:1px solid var(--stroke);
-      border-radius: var(--r);
-      padding: 14px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-    }
-
-    .grid{display:grid; gap:12px}
-    @media(min-width:780px){ .grid.cols2{grid-template-columns:1fr 1fr} }
-
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .sp{justify-content:space-between}
-
-    .mut{color:var(--mut)}
-    .label{font-size:12px; color:var(--mut); margin-bottom:6px}
-
-    input{
-      background: rgba(255,255,255,.07);
-      border:1px solid var(--stroke);
-      color: var(--text);
-      padding: 11px 12px;
-      border-radius: 14px;
-      outline:none;
-      min-width: 165px;
-    }
-
-    button{
-      border:none;
-      border-radius: 14px;
-      padding: 11px 12px;
-      font-weight: 700;
-      cursor:pointer;
-      color: white;
-      background: var(--pri);
-      box-shadow: 0 10px 22px rgba(10,132,255,.22);
-    }
-    button.secondary{
-      background: rgba(255,255,255,.08);
-      border: 1px solid var(--stroke);
-      color: var(--text);
-      box-shadow:none;
-    }
-    button.danger{
-      background: rgba(255,69,58,.16);
-      border: 1px solid rgba(255,69,58,.30);
-      color: rgba(255,255,255,.92);
-      box-shadow:none;
-    }
-    button:disabled{
-      opacity:.45; cursor:not-allowed;
-    }
-
-    .badge{
-      display:inline-flex; align-items:center;
-      padding: 7px 12px;
-      border-radius: 999px;
-      font-size:12px;
-      font-weight: 800;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.06);
-      color: var(--text);
-    }
-    .b-ok{border-color:rgba(52,199,89,.35); background: rgba(52,199,89,.16); color: var(--ok)}
-    .b-warn{border-color:rgba(255,159,10,.35); background: rgba(255,159,10,.16); color: var(--warn)}
-    .b-bad{border-color:rgba(255,69,58,.35); background: rgba(255,69,58,.16); color: var(--bad)}
-
-    .big{
-      font-size:34px; font-weight:900; letter-spacing:-.03em;
-    }
-
-    /* Progress */
-    .progress{
-      width:100%;
-      height: 10px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      overflow:hidden;
-      margin-top:10px;
-    }
-    .bar{
-      height:100%;
-      width: 0%;
-      background: var(--ok);
-      border-radius: 999px;
-      transition: width .25s ease;
-    }
-
-    /* Table */
-    table{width:100%; border-collapse:collapse}
-    th,td{padding:12px 8px; border-bottom:1px solid var(--stroke); text-align:left}
-    th{font-size:12px; color:var(--mut); font-weight:800}
-    .right{text-align:right}
-
-    .hide{display:none}
-    .error{margin-top:10px; font-size:12px; color: rgba(255,214,211,.95)}
-
-    /* Bottom tabs */
-    .tabsBottom{
-      position: fixed;
-      left: 0; right: 0;
-      bottom: 0;
-      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-      background: rgba(10,14,22,.62);
-      border-top: 1px solid rgba(255,255,255,.10);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-    .tabsInner{
-      max-width: 920px;
-      margin: 0 auto;
+      padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 8px;
+      gap: 17px;
     }
-    .tabBtn{
-      background: rgba(255,255,255,.06);
-      border: 1px solid rgba(255,255,255,.10);
-      border-radius: 16px;
-      padding: 10px 10px;
-      color: rgba(255,255,255,.75);
-      display:flex; flex-direction:column; align-items:center; gap:6px;
-      font-weight: 800;
+
+    .card {
+      background: #151C3F;
+      border-radius: 20px;
+      border: none;
       box-shadow: none;
     }
-    .tabBtn.active{
-      border-color: rgba(10,132,255,.45);
-      background: rgba(10,132,255,.18);
-      color: rgba(255,255,255,.92);
-    }
-    .ico{
-      width: 22px; height: 22px;
-      display:block;
-      opacity: .95;
-    }
-    .tabLabel{font-size:11px; letter-spacing:.01em}
 
-    /* Small helper */
-    .chip{
-      display:inline-flex; align-items:center; gap:8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--stroke);
-      background: rgba(255,255,255,.05);
-      color: rgba(255,255,255,.78);
-      font-size: 12px;
-      font-weight: 800;
+    .hero {
+      min-height: 293px;
+      padding: 26px 22px 18px;
+      display: grid;
+      justify-items: center;
+      align-content: start;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .ring {
+      width: 180px;
+      height: 180px;
+      position: relative;
+      display: grid;
+      place-items: center;
+      margin-top: 0;
+    }
+
+    .ringSvg {
+      width: 180px;
+      height: 180px;
+      transform: rotate(-90deg);
+      overflow: visible;
+    }
+
+    .ringTrack {
+      fill: none;
+      stroke: #2C3B50;
+      stroke-width: 14;
+    }
+
+    .ringProgress {
+      fill: none;
+      stroke: #4F7BFF;
+      stroke-width: 14;
+      stroke-linecap: round;
+      filter: drop-shadow(0 4px 18.7px rgba(28, 126, 255, 0.6));
+      transition: stroke-dashoffset .35s ease-out;
+    }
+
+    .ringNumber {
+      position: absolute;
+      font-size: 64px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .heroLabel {
+      margin: 0;
+      font-size: 36px;
+      line-height: 1.05;
+      font-weight: 500;
+      color: #A8B2D1;
+    }
+
+    .heroSub {
+      margin: 10px 0 0;
+      font-size: 32px;
+      line-height: 1.28;
+      font-weight: 400;
+      color: #FFFFFF;
+    }
+
+    .trip {
+      min-height: 406px;
+      padding: 17px 10px 14px;
+    }
+
+    .sectionTitle {
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: 40px;
+      line-height: 1.1;
+      font-weight: 500;
+      color: #FFFFFF;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .fieldHead {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 32px;
+      line-height: 1.1;
+      font-weight: 700;
+      color: #FFFFFF;
+      padding-left: 2px;
+    }
+
+    .fieldIcon,
+    .calIcon {
+      width: 18px;
+      height: 18px;
+      color: #46528D;
+      flex: 0 0 auto;
+    }
+
+    .inputWrap {
+      position: relative;
+    }
+
+    .input {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 14px;
+      background: #1E264D;
+      color: #FFFFFF;
+      padding: 0 44px 0 14px;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 400;
+      outline: none;
+    }
+
+    .inputWrap .calIcon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .input::-webkit-calendar-picker-indicator {
+      opacity: 0;
+      width: 36px;
+      height: 100%;
+      position: absolute;
+      right: 0;
+      top: 0;
+    }
+
+    .quick-pills {
+      display: flex;
+      gap: 10px;
+      margin: 14px 0 15px;
+    }
+
+    .pill {
+      width: 49px;
+      height: 44px;
+      border: none;
+      border-radius: 10px;
+      background: #1E264D;
+      color: #FFFFFF;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 700;
+      padding: 0;
+    }
+
+    .pill.active { background: #46528D; }
+
+    .tripMeta,
+    .subActions,
+    #tripError {
+      display: none;
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      border: none;
+      border-radius: 16px;
+      background: #4F7BFF;
+      color: #FFFFFF;
+      font-size: 32px;
+      line-height: 1;
+      font-weight: 700;
+    }
+
+    .tripsWrap { display: none; }
+
+    .subtitle {
+      margin: 0;
+      text-align: left;
+      font-size: 0;
+      line-height: 0;
+      color: transparent;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(74px + env(safe-area-inset-bottom));
+      background: #151C3F;
+      border-radius: 12px;
+      border: 1px solid #2C3B50;
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .toast.show { opacity: 1; pointer-events: auto; }
+    .secondary { border: none; background: #1E264D; color: #FFFFFF; border-radius: 12px; padding: 6px 10px; }
+    .hide { display: none; }
+
+    @media (max-width: 402px) {
+      .container { width: 100%; }
+      .heroLabel { font-size: 8.96vw; }
+      .heroSub,
+      .fieldHead,
+      .input,
+      .pill,
+      .btn-primary,
+      .sectionTitle { font-size: 7.96vw; }
     }
   </style>
 </head>
-
-<body>
-  <div class="wrap">
-    <div class="topbar">
-      <div>
-        <h1 class="title">Schengen Days</h1>
-        <div class="subtitle">90 days in any rolling 180-day window • works offline • data stays on your device</div>
+<body class="app">
+  <main id="appWrap" class="container">
+    <section id="hero" class="card hero" aria-live="polite">
+      <div class="ring">
+        <svg class="ringSvg" viewBox="0 0 180 180" aria-hidden="true">
+          <circle class="ringTrack" cx="90" cy="90" r="72"></circle>
+          <circle id="heroRingProgress" class="ringProgress" cx="90" cy="90" r="72"></circle>
+        </svg>
+        <div id="ringNumber" class="ringNumber">90</div>
       </div>
-      <span id="statusBadge" class="badge b-ok">Safe</span>
-    </div>
-
-    <!-- OVERVIEW -->
-    <section id="tab-overview" class="grid cols2">
-      <div class="card">
-        <div class="row sp">
-          <div>
-            <div class="mut">Days used (last 180)</div>
-            <div id="used" class="big">0</div>
-          </div>
-          <div style="text-align:right">
-            <div class="mut">Days remaining</div>
-            <div id="remaining" class="big">90</div>
-          </div>
-        </div>
-
-        <div class="progress" aria-label="usage progress">
-          <div id="progressBar" class="bar"></div>
-        </div>
-
-        <div class="row sp" style="margin-top:10px">
-          <span class="chip">As of: <span id="asOf"></span></span>
-          <span class="chip"><span id="usedOf90">0</span>/90</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="row sp">
-          <div>
-            <div class="mut">Next safe entry date</div>
-            <div id="nextSafe" style="font-size:18px;font-weight:900">—</div>
-            <div class="subtitle" style="margin-top:8px">Shown when you have 0 days left.</div>
-          </div>
-          <button class="secondary" id="resetBtn">Reset</button>
-        </div>
-      </div>
-
-      <div class="card" style="grid-column:1/-1">
-        <div style="font-weight:900;margin-bottom:10px">Add a trip</div>
-
-        <div class="grid cols2">
-          <div>
-            <div class="label">Entry date</div>
-            <input type="date" id="entryDate" />
-          </div>
-          <div>
-            <div class="label">Exit date</div>
-            <input type="date" id="exitDate" />
-          </div>
-        </div>
-
-        <div class="row sp" style="margin-top:12px">
-          <div class="chip">Selected: <span id="selectedDays">1</span> day(s)</div>
-          <button id="addTripBtn">Add trip</button>
-        </div>
-
-        <div id="error" class="error"></div>
-        <div class="subtitle" style="margin-top:10px">
-          Entry and exit days are counted (inclusive).
-        </div>
-      </div>
+      <p id="heroLabel" class="heroLabel">Days left</p>
+      <p id="heroSentence" class="heroSub">If you enter today, you must leave by —.</p>
     </section>
 
-    <!-- TRIPS -->
-    <section id="tab-trips" class="card hide">
-      <div class="row sp" style="margin-bottom:10px">
-        <div style="font-weight:900">Trips</div>
-        <span class="chip"><span id="tripCount">0</span> trip(s)</span>
-      </div>
+    <section class="card trip">
+      <h2 class="sectionTitle">Add a trip</h2>
 
-      <div id="tripsEmpty" class="mut">No trips yet. Add one in Overview.</div>
-
-      <div id="tripsTableWrap" class="hide">
-        <table>
-          <thead>
-            <tr>
-              <th>Entry → Exit</th>
-              <th class="right">Days</th>
-              <th class="right">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="tripsTbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- PLANNER -->
-    <section id="tab-planner" class="grid cols2 hide">
-      <div class="card">
-        <div style="font-weight:900;margin-bottom:10px">Planner</div>
-        <div class="label">If I enter on</div>
-        <input type="date" id="planEntry" />
-        <div class="subtitle" style="margin-top:10px">We simulate day-by-day to stay within 90/180.</div>
-      </div>
-
-      <div class="card">
-        <div style="font-weight:900;margin-bottom:10px">Result</div>
-
-        <div class="row sp">
-          <div>
-            <div class="mut">Max stay</div>
-            <div id="planMaxStay" class="big">0</div>
-          </div>
-          <div style="text-align:right">
-            <div class="mut">Latest exit</div>
-            <div id="planLatestExit" style="font-size:18px;font-weight:900">—</div>
-          </div>
+      <div class="field">
+        <div class="fieldHead">
+          <svg class="fieldIcon" viewBox="0 0 37 16" fill="none" aria-hidden="true"><path d="M37 8L24 8" stroke="currentColor" stroke-width="2"/><path d="M30.2929 1.29289C30.6834 0.902369 31.3166 0.902369 31.7071 1.29289L36.7071 6.29289C37.0976 6.68342 37.0976 7.31658 36.7071 7.70711C36.3166 8.09763 35.6834 8.09763 35.2929 7.70711L31 3.41421L26.7071 7.70711C26.3166 8.09763 25.6834 8.09763 25.2929 7.70711C24.9024 7.31658 24.9024 6.68342 25.2929 6.29289L30.2929 1.29289Z" fill="currentColor" transform="translate(0,16) scale(1,-1)"/></svg>
+          <span>Entry date</span>
         </div>
-
-        <div style="margin-top:14px">
-          <div class="mut">If 0 days available, next safe entry:</div>
-          <div id="planNextSafe" style="font-size:18px;font-weight:900;margin-top:6px">—</div>
+        <div class="inputWrap">
+          <input class="input" type="date" id="entryDate" />
+          <svg class="calIcon" viewBox="0 0 17 14" fill="none" aria-hidden="true"><rect x="1" y="3" width="15" height="10" rx="1" stroke="currentColor" stroke-width="2"/><rect width="17" height="7" transform="matrix(1 0 0 -1 0 4)" fill="currentColor"/><rect width="3" height="2" transform="matrix(1 0 0 -1 0 2)" fill="currentColor"/><rect width="3" height="2" transform="matrix(1 0 0 -1 14 2)" fill="currentColor"/></svg>
         </div>
       </div>
+
+      <div class="field">
+        <div class="fieldHead">
+          <svg class="fieldIcon" viewBox="0 0 37 16" fill="none" aria-hidden="true"><path d="M0 8H13" stroke="currentColor" stroke-width="2"/><path d="M6.70711 14.7071C6.31658 15.0976 5.68342 15.0976 5.29289 14.7071L0.292892 9.70711C-0.097631 9.31658 -0.097631 8.68342 0.292892 8.29289C0.683417 7.90237 1.31658 7.90237 1.70711 8.29289L6 12.5858L10.2929 8.29289C10.6834 7.90237 11.3166 7.90237 11.7071 8.29289C12.0976 8.68342 12.0976 9.31658 11.7071 9.70711L6.70711 14.7071Z" fill="currentColor" transform="translate(0,-0)"/></svg>
+          <span>Exit date</span>
+        </div>
+        <div class="inputWrap">
+          <input class="input" type="date" id="exitDate" />
+          <svg class="calIcon" viewBox="0 0 17 14" fill="none" aria-hidden="true"><rect x="1" y="3" width="15" height="10" rx="1" stroke="currentColor" stroke-width="2"/><rect width="17" height="7" transform="matrix(1 0 0 -1 0 4)" fill="currentColor"/><rect width="3" height="2" transform="matrix(1 0 0 -1 0 2)" fill="currentColor"/><rect width="3" height="2" transform="matrix(1 0 0 -1 14 2)" fill="currentColor"/></svg>
+        </div>
+      </div>
+
+      <div class="quick-pills">
+        <button class="pill quickBtn" type="button" data-quick="1">1</button>
+        <button class="pill quickBtn" type="button" data-quick="7">7</button>
+        <button class="pill quickBtn" type="button" data-quick="14">14</button>
+        <button class="pill quickBtn" type="button" data-quick="30">30</button>
+      </div>
+
+      <p class="tripMeta">Trip length: <strong id="tripLength">—</strong></p>
+      <button id="saveTripBtn" type="button" class="btn-primary">Save</button>
+      <div class="subActions">
+        <button id="swapDatesBtn" type="button" class="secondary hide">Swap dates</button>
+        <button id="cancelEditBtn" type="button" class="secondary hide">Cancel</button>
+      </div>
+      <div id="tripError"></div>
     </section>
 
-    <div class="subtitle" style="margin-top:16px">
-      Disclaimer: estimates only, not legal advice. Always verify rules for your specific visa/residency.
-    </div>
+    <section class="card tripsWrap">
+      <h3 class="tripsTitle">Your trips</h3>
+      <div id="tripsEmpty" class="tripSub">You haven’t added any trips yet.</div>
+      <div id="tripsList"></div>
+    </section>
+
+    <div class="subtitle">Estimates only. Verify official Schengen rules.</div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toastText"></span>
+    <button id="undoBtn" class="secondary hide" type="button">Undo</button>
   </div>
-
-  <!-- Bottom tab bar -->
-  <nav class="tabsBottom" aria-label="Bottom tabs">
-    <div class="tabsInner">
-      <button class="tabBtn active" data-tab="overview" aria-label="Overview">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M4 12a8 8 0 1 1 16 0" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M12 12l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M4 12h16" stroke="currentColor" stroke-width="2" opacity=".35"/>
-        </svg>
-        <div class="tabLabel">Overview</div>
-      </button>
-
-      <button class="tabBtn" data-tab="trips" aria-label="Trips">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M7 3v3M17 3v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M5 7h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".6"/>
-          <path d="M6 6h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="2"/>
-        </svg>
-        <div class="tabLabel">Trips</div>
-      </button>
-
-      <button class="tabBtn" data-tab="planner" aria-label="Planner">
-        <svg class="ico" viewBox="0 0 24 24" fill="none">
-          <path d="M12 8v5l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M12 22a10 10 0 1 0-10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          <path d="M2 12h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".35"/>
-        </svg>
-        <div class="tabLabel">Planner</div>
-      </button>
-    </div>
-  </nav>
 
   <script src="app.js"></script>
   <script>
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
