@@ -1,260 +1,473 @@
-// ---------- Utilities ----------
-const dayMs = 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const KEY = "schengen_days_trips_v3";
 
-function toDay(dateStrOrDate) {
-  const d = (dateStrOrDate instanceof Date)
-    ? dateStrOrDate
-    : new Date(dateStrOrDate + "T00:00:00");
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+let trips = [];
+let editingIndex = null;
+let toastTimer;
+let undoTimer;
+let pendingDeleted = null;
+let userTouchedExit = false;
+
+const el = (id) => document.getElementById(id);
+
+function parseYMD(ymd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ""));
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  const ts = Date.UTC(y, mo - 1, d);
+  const dt = new Date(ts);
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+  return { y, mo, d };
 }
 
-function fmt(d) {
-  if (!d) return "—";
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+function toDayIndex(ymd) {
+  const p = parseYMD(ymd);
+  if (!p) return null;
+  return Math.floor(Date.UTC(p.y, p.mo - 1, p.d) / DAY_MS);
 }
 
-function daysInclusive(a, b) {
-  const A = toDay(a).getTime();
-  const B = toDay(b).getTime();
-  if (B < A) return 0;
-  return Math.floor((B - A) / dayMs) + 1;
+function fromDayIndex(i) {
+  return new Date(i * DAY_MS).toISOString().slice(0, 10);
 }
 
-function clampTrip(trip) {
-  const a = toDay(trip.entry);
-  const b = toDay(trip.exit);
-  return { id: trip.id, entry: (a <= b) ? a : b, exit: (a <= b) ? b : a };
+function addDays(dayIndex, n) {
+  return dayIndex + n;
 }
 
-function window180(refDate) {
-  const end = toDay(refDate);
-  const start = new Date(end.getTime() - 179 * dayMs); // inclusive window of 180 days
-  return { start, end };
+function diffDaysInclusive(startIndex, endIndex) {
+  if (endIndex < startIndex) return 0;
+  return endIndex - startIndex + 1;
 }
 
-function overlapDaysInclusive(aStart, aEnd, bStart, bEnd) {
-  const start = (aStart > bStart) ? aStart : bStart;
-  const end = (aEnd < bEnd) ? aEnd : bEnd;
-  if (start > end) return 0;
-  return daysInclusive(start, end);
+function fmtYMD(ymd) {
+  const i = toDayIndex(ymd);
+  if (i === null) return "—";
+  return new Date(i * DAY_MS).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    timeZone: "UTC"
+  });
 }
 
-// ---------- Storage ----------
-const KEY = "schengen_days_trips_v2";
+function normalizeTrips(list) {
+  const indexed = [];
+  for (const t of list || []) {
+    const a = toDayIndex(t.entry);
+    const b = toDayIndex(t.exit);
+    if (a === null || b === null) continue;
+    indexed.push(a <= b ? { entry: a, exit: b } : { entry: b, exit: a });
+  }
+
+  indexed.sort((x, y) => x.entry - y.entry);
+  if (!indexed.length) return [];
+
+  const merged = [indexed[0]];
+  for (let i = 1; i < indexed.length; i++) {
+    const prev = merged[merged.length - 1];
+    const curr = indexed[i];
+    if (curr.entry <= prev.exit + 1) {
+      if (curr.exit > prev.exit) prev.exit = curr.exit;
+    } else {
+      merged.push(curr);
+    }
+  }
+
+  return merged.map((t) => ({ entry: fromDayIndex(t.entry), exit: fromDayIndex(t.exit) }));
+}
 
 function loadTrips() {
   try {
     const raw = localStorage.getItem(KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return list.map(t => clampTrip(t));
-  } catch { return []; }
-}
-
-function saveTrips(trips) {
-  const raw = trips.map(t => ({
-    id: t.id,
-    entry: t.entry.toISOString().slice(0, 10),
-    exit:  t.exit.toISOString().slice(0, 10)
-  }));
-  localStorage.setItem(KEY, JSON.stringify(raw));
-}
-
-// ---------- Core calc ----------
-function daysUsedLast180(refDate, trips) {
-  const w = window180(refDate);
-  let sum = 0;
-  for (const t of trips) sum += overlapDaysInclusive(w.start, w.end, t.entry, t.exit);
-  return sum;
-}
-
-function remainingLast180(refDate, trips) {
-  return Math.max(0, 90 - daysUsedLast180(refDate, trips));
-}
-
-function status(refDate, trips) {
-  const used = daysUsedLast180(refDate, trips);
-  if (used > 90) return "overstay";
-  if (used >= 80) return "warning";
-  return "safe";
-}
-
-// Planner: simulate presence day-by-day
-function maxStayDays(entryDate, trips) {
-  const entry = toDay(entryDate);
-  let days = 0;
-  for (; days < 366; days++) {
-    const current = new Date(entry.getTime() + days * dayMs);
-    const usedExisting = daysUsedLast180(current, trips);
-    const w = window180(current);
-    const extra = overlapDaysInclusive(w.start, w.end, entry, current);
-    if (usedExisting + extra > 90) break;
+    const parsed = raw ? JSON.parse(raw) : [];
+    return normalizeTrips(parsed);
+  } catch {
+    return [];
   }
-  return Math.max(0, days - 1);
 }
 
-function latestExit(entryDate, trips) {
-  const maxDays = maxStayDays(entryDate, trips);
-  if (maxDays <= 0) return null;
-  const entry = toDay(entryDate);
-  return new Date(entry.getTime() + (maxDays - 1) * dayMs);
+function saveTrips(nextTrips) {
+  localStorage.setItem(KEY, JSON.stringify(normalizeTrips(nextTrips)));
 }
 
-function nextSafeEntryDate(startDate, trips) {
-  let d = toDay(startDate);
+function computeUsedDays(asOfDayIndex, sourceTrips = trips) {
+  const normalized = normalizeTrips(sourceTrips);
+  const windowStart = asOfDayIndex - 179;
+  const windowEnd = asOfDayIndex;
+  let used = 0;
+
+  for (const t of normalized) {
+    const s = toDayIndex(t.entry);
+    const e = toDayIndex(t.exit);
+    if (s === null || e === null) continue;
+    const overlapStart = Math.max(s, windowStart);
+    const overlapEnd = Math.min(e, windowEnd);
+    used += diffDaysInclusive(overlapStart, overlapEnd);
+  }
+
+  return used;
+}
+
+function computeRemaining(asOfDayIndex, sourceTrips = trips) {
+  return Math.max(0, 90 - computeUsedDays(asOfDayIndex, sourceTrips));
+}
+
+function getNextPossibleEntry(asOfDayIndex, sourceTrips = trips) {
+  let d = asOfDayIndex;
   for (let i = 0; i < 730; i++) {
-    if (remainingLast180(d, trips) > 0) return d;
-    d = new Date(d.getTime() + dayMs);
+    if (computeRemaining(d, sourceTrips) > 0) return d;
+    d = addDays(d, 1);
   }
-  return toDay(startDate);
+  return asOfDayIndex;
 }
 
-// ---------- UI ----------
-let trips = loadTrips();
-const el = (id) => document.getElementById(id);
-
-function setBadge(kind) {
-  const b = el("statusBadge");
-  b.classList.remove("b-ok","b-warn","b-bad");
-  if (kind === "safe") { b.classList.add("b-ok"); b.textContent = "Safe"; }
-  if (kind === "warning") { b.classList.add("b-warn"); b.textContent = "Warning"; }
-  if (kind === "overstay") { b.classList.add("b-bad"); b.textContent = "Overstay"; }
+function getHeroRisk(remaining) {
+  if (remaining === 0) return "risk-critical";
+  if (remaining <= 29) return "risk-danger";
+  if (remaining <= 74) return "risk-warning";
+  return "risk-safe";
 }
 
-function selectedTripDays() {
+function getDraftTrips() {
+  const trip = { entry: el("entryDate").value, exit: el("exitDate").value };
+  const eIdx = toDayIndex(trip.entry);
+  const xIdx = toDayIndex(trip.exit);
+  if (eIdx === null || xIdx === null || xIdx < eIdx) return [...trips];
+
+  const next = [...trips];
+  if (editingIndex === null) next.push(trip);
+  else next[editingIndex] = trip;
+  return normalizeTrips(next);
+}
+
+function selectedTripInfo() {
   const entry = el("entryDate").value;
   const exit = el("exitDate").value;
-  if (!entry || !exit) return { ok:false, days: 0, msg: "Select both dates." };
-  const a = toDay(entry), b = toDay(exit);
-  if (b < a) return { ok:false, days: 0, msg: "Exit date must be on or after entry date." };
-  const d = daysInclusive(a, b);
-  return { ok:true, days: d, msg: "" };
+  const eIdx = toDayIndex(entry);
+  const xIdx = toDayIndex(exit);
+
+  if (eIdx === null || xIdx === null) {
+    return { ok: false, days: null, msg: "", invalidOrder: false, warning: "" };
+  }
+  if (xIdx < eIdx) {
+    return { ok: false, days: null, msg: "Exit date must be on or after entry date.", invalidOrder: true, warning: "" };
+  }
+
+  const today = Math.floor(Date.now() / DAY_MS);
+  const usedWithDraft = computeUsedDays(today, getDraftTrips());
+  const warning = usedWithDraft > 90 ? "Warning: this trip can exceed the 90-day limit in the current 180-day window." : "";
+
+  return { ok: true, days: diffDaysInclusive(eIdx, xIdx), msg: "", invalidOrder: false, warning };
 }
 
-function syncSelectedUI() {
-  const info = selectedTripDays();
-  el("selectedDays").textContent = String(Math.max(1, info.days || 1));
-  const addBtn = el("addTripBtn");
-  addBtn.disabled = !info.ok;
-  el("error").textContent = info.ok ? "" : info.msg;
+function syncTripForm() {
+  const info = selectedTripInfo();
+  el("tripLength").textContent = info.days === null ? "—" : `${info.days} days`;
+  el("tripError").textContent = info.msg;
+  el("tripWarning").textContent = info.warning;
+  el("tripError").classList.toggle("hide", !info.msg);
+  el("tripWarning").classList.toggle("hide", !info.warning);
+  el("saveTripBtn").disabled = !info.ok;
+  el("swapDatesBtn").classList.toggle("hide", !info.invalidOrder);
+}
+
+function setHero() {
+  const todayIndex = Math.floor(Date.now() / DAY_MS);
+  const used = computeUsedDays(todayIndex);
+  const remaining = Math.max(0, 90 - used);
+
+  const hero = el("hero");
+  hero.classList.remove("risk-safe", "risk-warning", "risk-danger", "risk-critical");
+  hero.classList.add(getHeroRisk(remaining));
+
+  const radius = 62;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.max(0, Math.min(1, remaining / 90));
+  const ring = el("heroRingProgress");
+  ring.style.strokeDasharray = `${circumference.toFixed(2)} ${circumference.toFixed(2)}`;
+  ring.style.strokeDashoffset = (circumference * (1 - progress)).toFixed(2);
+
+  el("ringNumber").textContent = String(remaining);
+  el("heroLabel").textContent = "Days left";
+
+  if (used > 90) {
+    const overstayDays = used - 90;
+    const next = getNextPossibleEntry(todayIndex);
+    el("heroSentence").textContent = `Overstay by ${overstayDays} day(s). Next possible entry: ${fmtYMD(fromDayIndex(next))}.`;
+    return;
+  }
+
+  const stayDays = remaining > 0 ? remaining : 1;
+  const leaveBy = addDays(todayIndex, stayDays - 1);
+  el("heroSentence").textContent = `If you enter today, you must leave by ${fmtYMD(fromDayIndex(leaveBy))}.`;
+}
+
+function renderTimeline() {
+  const grid = el("timelineGrid");
+  const empty = el("timelineEmpty");
+  const meta = el("timelineMeta");
+  grid.innerHTML = "";
+
+  if (!trips.length) {
+    empty.classList.remove("hide");
+    meta.classList.add("hide");
+    grid.classList.add("hide");
+    return;
+  }
+
+  empty.classList.add("hide");
+  meta.classList.remove("hide");
+  grid.classList.remove("hide");
+
+  const today = Math.floor(Date.now() / DAY_MS);
+  const start = today - 179;
+  const usedSet = new Set();
+
+  for (const t of normalizeTrips(trips)) {
+    const s = toDayIndex(t.entry);
+    const e = toDayIndex(t.exit);
+    if (s === null || e === null) continue;
+    const from = Math.max(s, start);
+    const to = Math.min(e, today);
+    for (let d = from; d <= to; d++) usedSet.add(d);
+  }
+
+  for (let d = start; d <= today; d++) {
+    const cell = document.createElement("div");
+    cell.className = "dayCell";
+    if (usedSet.has(d)) cell.classList.add("used");
+    if (d === today) cell.classList.add("today");
+    grid.appendChild(cell);
+  }
+
+  meta.textContent = `Window: ${fmtYMD(fromDayIndex(start))} — ${fmtYMD(fromDayIndex(today))} • Used: ${computeUsedDays(today, trips)}/90 • Left: ${computeRemaining(today, trips)}`;
+}
+
+function showToast(text, canUndo = false) {
+  el("toastText").textContent = text;
+  el("undoBtn").classList.toggle("hide", !canUndo);
+  el("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el("toast").classList.remove("show");
+    el("undoBtn").classList.add("hide");
+  }, canUndo ? 5200 : 1700);
+}
+
+function openModal() {
+  el("tripModal").classList.add("open");
+  el("tripModal").setAttribute("aria-hidden", "false");
+}
+
+function closeModal() {
+  el("tripModal").classList.remove("open");
+  el("tripModal").setAttribute("aria-hidden", "true");
+}
+
+function quickSet(n, btn = null) {
+  let entry = el("entryDate").value;
+  if (toDayIndex(entry) === null) {
+    entry = fromDayIndex(Math.floor(Date.now() / DAY_MS));
+    el("entryDate").value = entry;
+  }
+  const endIdx = addDays(toDayIndex(entry), Number(n) - 1);
+  el("exitDate").value = fromDayIndex(endIdx);
+  userTouchedExit = true;
+  syncTripForm();
+  if (btn) {
+    document.querySelectorAll(".quickBtn").forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+}
+
+function autoSuggestExitFromEntry() {
+  const entry = el("entryDate").value;
+  const startIdx = toDayIndex(entry);
+  if (startIdx === null) return;
+
+  if (!userTouchedExit || toDayIndex(el("exitDate").value) === null) {
+    const suggested = addDays(startIdx, 6);
+    el("exitDate").value = fromDayIndex(suggested);
+  }
+}
+
+function swapDates() {
+  const entry = el("entryDate").value;
+  const exit = el("exitDate").value;
+  if (!entry || !exit) return;
+  el("entryDate").value = exit;
+  el("exitDate").value = entry;
+  userTouchedExit = true;
+  syncTripForm();
+}
+
+function saveTripFromForm() {
+  const info = selectedTripInfo();
+  if (!info.ok) return;
+
+  const trip = { entry: el("entryDate").value, exit: el("exitDate").value };
+  if (editingIndex === null) {
+    trips.push(trip);
+    showToast("Trip saved");
+  } else {
+    trips[editingIndex] = trip;
+    showToast("Trip updated");
+  }
+
+  trips = normalizeTrips(trips);
+  saveTrips(trips);
+  clearEditMode();
+  closeModal();
+  render();
+}
+
+function setEditMode(index) {
+  editingIndex = index;
+  const t = trips[index];
+  el("entryDate").value = t.entry;
+  el("exitDate").value = t.exit;
+  userTouchedExit = true;
+  el("cancelEditBtn").classList.remove("hide");
+  syncTripForm();
+  document.querySelectorAll(".quickBtn").forEach((b) => b.classList.remove("active"));
+  openModal();
+}
+
+function clearEditMode() {
+  editingIndex = null;
+  userTouchedExit = false;
+  el("cancelEditBtn").classList.add("hide");
+  syncTripForm();
+  document.querySelectorAll(".quickBtn").forEach((b) => b.classList.remove("active"));
+}
+
+function deleteTrip(index) {
+  pendingDeleted = { trip: trips[index], index };
+  trips.splice(index, 1);
+  trips = normalizeTrips(trips);
+  saveTrips(trips);
+  render();
+  showToast("Trip deleted — Undo", true);
+
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(() => {
+    pendingDeleted = null;
+    el("undoBtn").classList.add("hide");
+  }, 5000);
+}
+
+function undoDelete() {
+  if (!pendingDeleted) return;
+  trips.splice(Math.min(pendingDeleted.index, trips.length), 0, pendingDeleted.trip);
+  trips = normalizeTrips(trips);
+  saveTrips(trips);
+  pendingDeleted = null;
+  clearTimeout(undoTimer);
+  render();
+  showToast("Trip restored");
+}
+
+function renderTrips() {
+  const list = el("tripsList");
+  list.innerHTML = "";
+  el("tripsEmpty").classList.toggle("hide", trips.length > 0);
+
+  for (let i = trips.length - 1; i >= 0; i--) {
+    const t = trips[i];
+    const len = diffDaysInclusive(toDayIndex(t.entry), toDayIndex(t.exit));
+    const row = document.createElement("div");
+    row.className = "tripRow";
+    row.innerHTML = `
+      <div>
+        <div class="tripMain">${fmtYMD(t.entry)} → ${fmtYMD(t.exit)}</div>
+        <div class="tripSub">${len} days</div>
+      </div>
+      <div class="rowBtns">
+        <button class="secondary iconBtn" data-edit="${i}" aria-label="Edit trip">
+          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" stroke-width="2"/><path d="m12 6 4 4" stroke="currentColor" stroke-width="2"/></svg>
+          Edit
+        </button>
+        <button class="secondary iconBtn" data-del="${i}" aria-label="Delete trip">
+          <svg class="icon" viewBox="0 0 24 24" fill="none"><path d="M4 7h16" stroke="currentColor" stroke-width="2"/><path d="M7 7l1 13h8l1-13" stroke="currentColor" stroke-width="2"/><path d="M9 7V4h6v3" stroke="currentColor" stroke-width="2"/></svg>
+          Delete
+        </button>
+      </div>
+    `;
+    list.appendChild(row);
+  }
 }
 
 function render() {
-  const now = new Date();
-  const used = daysUsedLast180(now, trips);
-  const rem  = remainingLast180(now, trips);
-
-  el("used").textContent = String(used);
-  el("remaining").textContent = String(rem);
-  el("asOf").textContent = fmt(now);
-  el("usedOf90").textContent = String(Math.min(90, used));
-
-  // progress bar (0..100)
-  const p = Math.max(0, Math.min(100, (used / 90) * 100));
-  const bar = el("progressBar");
-  bar.style.width = p.toFixed(1) + "%";
-  // color thresholds
-  if (used >= 90) bar.style.background = "var(--bad)";
-  else if (used >= 80) bar.style.background = "var(--warn)";
-  else bar.style.background = "var(--ok)";
-
-  setBadge(status(now, trips));
-
-  const nextSafe = (rem > 0) ? now : nextSafeEntryDate(now, trips);
-  el("nextSafe").textContent = fmt(nextSafe);
-
-  // Trips tab
-  el("tripCount").textContent = String(trips.length);
-  el("tripsEmpty").classList.toggle("hide", trips.length !== 0);
-  el("tripsTableWrap").classList.toggle("hide", trips.length === 0);
-
-  const tbody = el("tripsTbody");
-  tbody.innerHTML = "";
-  for (const t of trips.slice().sort((a,b) => b.entry - a.entry)) {
-    const tr = document.createElement("tr");
-    const d = daysInclusive(t.entry, t.exit);
-    tr.innerHTML = `
-      <td>${fmt(t.entry)} → ${fmt(t.exit)}</td>
-      <td class="right">${d}</td>
-      <td class="right"><button class="danger" data-del="${t.id}">Delete</button></td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  // Planner
-  const planEntry = el("planEntry").value;
-  if (planEntry) {
-    const m = maxStayDays(planEntry, trips);
-    const le = latestExit(planEntry, trips);
-    const ns = nextSafeEntryDate(planEntry, trips);
-    el("planMaxStay").textContent = String(m);
-    el("planLatestExit").textContent = fmt(le);
-    el("planNextSafe").textContent = fmt(ns);
-  } else {
-    el("planMaxStay").textContent = "0";
-    el("planLatestExit").textContent = "—";
-    el("planNextSafe").textContent = "—";
-  }
+  setHero();
+  renderTimeline();
+  renderTrips();
+  syncTripForm();
 }
 
-function addTrip() {
-  const info = selectedTripDays();
-  if (!info.ok) { syncSelectedUI(); return; }
+function runSelfChecks() {
+  const errors = [];
 
-  const entry = el("entryDate").value;
-  const exit  = el("exitDate").value;
+  const len = diffDaysInclusive(toDayIndex("2026-02-10"), toDayIndex("2026-02-17"));
+  if (len !== 8) errors.push("inclusive length failed: expected 8");
 
-  const t = clampTrip({ id: crypto.randomUUID(), entry, exit });
-  trips.push(t);
-  saveTrips(trips);
+  const asOf = toDayIndex("2026-02-19");
+  const start = asOf - 179;
+  if (fromDayIndex(start) !== "2025-08-24") errors.push("window start failed: expected 2025-08-24");
 
-  render();
+  const used = computeUsedDays(asOf, [{ entry: "2026-02-10", exit: "2026-02-17" }]);
+  if (used !== 8) errors.push("simple used days failed: expected 8");
+
+  if (errors.length) errors.forEach((msg) => console.error(`[self-check] ${msg}`));
 }
 
-function deleteTrip(id) {
-  trips = trips.filter(t => t.id !== id);
-  saveTrips(trips);
-  render();
-}
+document.addEventListener("DOMContentLoaded", () => {
+  trips = loadTrips();
 
-// Bottom tabs
-document.querySelectorAll(".tabBtn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tabBtn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
-    const tab = btn.dataset.tab;
-    ["overview","trips","planner"].forEach(t => {
-      el("tab-" + t).classList.toggle("hide", t !== tab);
-    });
+  const todayIdx = Math.floor(Date.now() / DAY_MS);
+  el("entryDate").value = fromDayIndex(todayIdx);
+  el("exitDate").value = fromDayIndex(addDays(todayIdx, 6));
+
+  el("entryDate").addEventListener("change", () => {
+    autoSuggestExitFromEntry();
+    syncTripForm();
   });
-});
 
-// Actions
-el("addTripBtn").addEventListener("click", addTrip);
-el("tripsTbody").addEventListener("click", (e) => {
-  const id = e.target?.dataset?.del;
-  if (id) deleteTrip(id);
-});
-el("planEntry").addEventListener("change", render);
+  el("exitDate").addEventListener("change", () => {
+    userTouchedExit = true;
+    syncTripForm();
+  });
 
-el("resetBtn").addEventListener("click", () => {
-  if (confirm("Reset all trips on this device?")) {
-    trips = [];
-    saveTrips(trips);
-    render();
-  }
-});
+  el("openAddTripBtn").addEventListener("click", () => {
+    clearEditMode();
+    openModal();
+  });
+  el("closeTripModalBtn").addEventListener("click", closeModal);
+  el("modalBackdrop").addEventListener("click", closeModal);
 
-// Live update “Selected days” + button state
-el("entryDate").addEventListener("change", () => { syncSelectedUI(); });
-el("exitDate").addEventListener("change", () => { syncSelectedUI(); });
+  el("saveTripBtn").addEventListener("click", saveTripFromForm);
+  el("cancelEditBtn").addEventListener("click", clearEditMode);
+  el("swapDatesBtn").addEventListener("click", swapDates);
 
-// Init defaults
-(function init() {
-  const today = new Date();
-  const iso = today.toISOString().slice(0,10);
-  el("entryDate").value = iso;
-  el("exitDate").value = iso;
-  el("planEntry").value = iso;
-  syncSelectedUI();
+  document.querySelectorAll("[data-quick]").forEach((btn) => {
+    btn.addEventListener("click", () => quickSet(btn.dataset.quick, btn));
+  });
+
+  el("tripsList").addEventListener("click", (e) => {
+    const edit = e.target.closest("[data-edit]")?.dataset.edit;
+    const del = e.target.closest("[data-del]")?.dataset.del;
+    if (typeof edit !== "undefined") return setEditMode(Number(edit));
+    if (typeof del !== "undefined") deleteTrip(Number(del));
+  });
+
+  el("undoBtn").addEventListener("click", undoDelete);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeModal();
+  });
+
+  runSelfChecks();
   render();
-})();
+});
